@@ -3,180 +3,466 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>RanKingGo - Mapa de Charallave</title>
-    <!-- Tailwind CSS para diseño moderno -->
+    <title>RanKingGo - Centro Operativo</title>
+    <!-- Tailwind CSS para diseño UI/UX Premium -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Leaflet CSS para el mapa interactivo -->
+    <!-- Leaflet CSS para mapas interactivos -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <!-- Telegram WebApp SDK -->
+    <!-- Telegram WebApp SDK Oficial -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Lucide Icons para una interfaz moderna -->
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         body, html {
             margin: 0;
             padding: 0;
             height: 100%;
-            background-color: #f3f4f6;
-            color: #1f2937;
+            background-color: #0f172a; /* Fondo ultra oscuro slate-900 */
+            color: #f1f5f9;
             font-family: system-ui, -apple-system, sans-serif;
+            overflow: hidden;
         }
         #map {
-            height: calc(100vh - 190px);
+            height: 100%;
             width: 100%;
         }
-        /* Personalización elegante para Leaflet */
+        /* Personalización oscura para Leaflet */
         .leaflet-container {
-            background: #e5e7eb !important;
+            background: #1e293b !important;
+        }
+        /* Ocultar barra de desplazamiento */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
     </style>
 </head>
-<body>
+<body class="flex flex-col h-screen select-none">
 
-    <!-- Encabezado de la App -->
-    <div class="p-4 bg-yellow-500 text-black flex items-center justify-between shadow-md">
-        <div>
-            <h1 class="font-extrabold text-lg tracking-wider">🚀 RAN KING GO</h1>
-            <p class="text-xs font-semibold opacity-90">Traza tu ruta vial en tiempo real</p>
-        </div>
-        <div class="text-right">
-            <span class="bg-black text-yellow-500 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase">GPS ACTIVO</span>
-        </div>
-    </div>
-
-    <!-- Contenedor del Mapa -->
-    <div id="map" class="relative"></div>
-
-    <!-- Panel de Cotización Táctil -->
-    <div class="absolute bottom-0 left-0 w-full bg-white border-t border-gray-200 p-4 rounded-t-3xl shadow-2xl z-[1000]">
-        <div class="flex justify-between items-center mb-3">
+    <!-- Header Fijo de la Aplicación -->
+    <div class="p-4 bg-slate-900 border-b border-slate-800 flex items-center justify-between shadow-lg shrink-0 z-50">
+        <div class="flex items-center gap-2">
+            <div class="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-black font-black text-xl shadow-md">R</div>
             <div>
-                <p class="text-gray-500 text-xs uppercase font-bold tracking-wider">Distancia Real (Vías)</p>
-                <p id="distancia-texto" class="text-xl font-black text-blue-600">Calculando...</p>
+                <h1 class="font-black text-sm tracking-wider text-amber-500 uppercase">RanKingGo</h1>
+                <p id="app-status-subtitle" class="text-[10px] text-slate-400 font-semibold uppercase">Portal de Servicios</p>
             </div>
-            <div class="text-right">
-                <p class="text-gray-500 text-xs uppercase font-bold tracking-wider">Tarifa Sugerida</p>
-                <p id="precio-texto" class="text-xl font-black text-emerald-600">Calculando...</p>
+        </div>
+        <div class="flex items-center gap-1.5 bg-slate-800 px-2.5 py-1 rounded-full border border-slate-700">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span id="user-display-name" class="text-[10px] font-bold text-slate-300">Cargando...</span>
+        </div>
+    </div>
+
+    <!-- Contenedor Principal de Vistas -->
+    <div class="grow relative overflow-hidden">
+
+        <!-- SCREEN 1: Selector de Rol / Bienvenida -->
+        <div id="screen-welcome" class="absolute inset-0 z-40 bg-slate-950 flex flex-col justify-between p-6 overflow-y-auto no-scrollbar transition-all duration-300">
+            <div class="flex flex-col items-center text-center mt-6">
+                <div class="w-20 h-20 bg-amber-500 rounded-2xl flex items-center justify-center text-black font-extrabold text-5xl shadow-xl animate-bounce mb-4">🏍️</div>
+                <h2 class="text-3xl font-black text-slate-100">¡Bienvenido a la Red!</h2>
+                <p class="text-slate-400 text-sm mt-2 max-w-xs">El sistema de mototaxis inteligentes en tiempo real para Charallave.</p>
+            </div>
+
+            <!-- Botonera de Selección de Perfil -->
+            <div class="space-y-4 my-8">
+                <button onclick="navigate('screen-passenger-map')" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black p-4 rounded-2xl flex items-center justify-between shadow-lg transition transform active:scale-95">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="map-pin" class="w-6 h-6"></i>
+                        <div class="text-left">
+                            <p class="font-extrabold text-base">Solicitar Viaje</p>
+                            <p class="text-[10px] opacity-80">Mapa interactivo en vivo</p>
+                        </div>
+                    </div>
+                    <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                </button>
+
+                <button onclick="checkDriverStatus()" class="w-full bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-200 font-bold p-4 rounded-2xl flex items-center justify-between shadow-md transition transform active:scale-95">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="navigation" class="w-6 h-6 text-amber-500"></i>
+                        <div class="text-left">
+                            <p class="font-extrabold text-base">Portal Conductor</p>
+                            <p class="text-[10px] text-slate-400">Ver carreras y cambiar estado</p>
+                        </div>
+                    </div>
+                    <i data-lucide="chevron-right" class="w-5 h-5 text-slate-500"></i>
+                </button>
+
+                <div class="border-t border-slate-900 my-4"></div>
+
+                <button onclick="startRegistrationFlow()" class="w-full bg-slate-950 hover:bg-slate-900 border border-amber-500/30 text-amber-500 font-bold p-3.5 rounded-2xl flex items-center justify-center gap-2 transition active:scale-95">
+                    <i data-lucide="user-plus" class="w-5 h-5"></i>
+                    <span>Registrarse en la Flota / KYC</span>
+                </button>
+            </div>
+
+            <div class="text-center text-[10px] text-slate-500">
+                Al continuar aceptas nuestros términos operativos y el contrato legal de Charallave.
             </div>
         </div>
 
-        <!-- Botón de Envío Oficial al Bot -->
-        <button id="btn-confirmar" class="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-extrabold py-3.5 rounded-xl transition duration-150 flex items-center justify-center gap-2 shadow-lg active:scale-95">
-            📍 CONFIRMAR ORIGEN Y DESTINO
-        </button>
+        <!-- SCREEN 2: Registro Dinámico (Pasajero / Conductor) -->
+        <div id="screen-register" class="absolute inset-0 z-30 bg-slate-950 hidden flex flex-col justify-between p-6 overflow-y-auto no-scrollbar">
+            <div>
+                <div class="flex items-center gap-2 mb-6">
+                    <button onclick="navigate('screen-welcome')" class="p-2 bg-slate-900 rounded-lg text-slate-300 active:scale-90">
+                        <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                    </button>
+                    <h2 class="text-xl font-bold text-slate-100">Registro Operativo</h2>
+                </div>
+
+                <!-- Selector de Tipo de Registro -->
+                <div class="grid grid-cols-2 gap-2 bg-slate-900 p-1.5 rounded-xl border border-slate-800 mb-6">
+                    <button id="tab-reg-client" onclick="setRegType('client')" class="py-2.5 rounded-lg text-xs font-black text-black bg-amber-500 transition-all">
+                        Pasajero (KYC)
+                    </button>
+                    <button id="tab-reg-driver" onclick="setRegType('driver')" class="py-2.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200 transition-all">
+                        Conductor Profesional
+                    </button>
+                </div>
+
+                <!-- Formulario Dinámico -->
+                <form id="reg-form" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Nombre y Apellido</label>
+                        <input id="reg-nombre" type="text" placeholder="Ej. Carlos Mendoza" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-amber-500 text-sm">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Cédula de Identidad</label>
+                        <input id="reg-cedula" type="text" placeholder="V-12345678" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-amber-500 text-sm">
+                    </div>
+
+                    <div id="driver-fields" class="hidden space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Placa del Vehículo</label>
+                            <input id="reg-placa" type="text" placeholder="Ej. AA112BB" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-amber-500 text-sm uppercase">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Banco Pago Móvil</label>
+                            <select id="reg-banco" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-amber-500 text-sm">
+                                <option value="0102">Banco de Venezuela (0102)</option>
+                                <option value="0134">Banesco (0134)</option>
+                                <option value="0105">Mercantil (0105)</option>
+                                <option value="0108">Provincial (0108)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Teléfono Pago Móvil</label>
+                            <input id="reg-telefono" type="tel" placeholder="0426-4211835" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-amber-500 text-sm">
+                        </div>
+                    </div>
+
+                    <!-- Contrato Legal Integrado -->
+                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 mt-2">
+                        <h3 class="text-xs font-bold text-amber-500 mb-1 flex items-center gap-1">
+                            <i data-lucide="shield-alert" class="w-4 h-4"></i>
+                            EXCLUSIÓN DE RESPONSABILIDAD
+                        </h3>
+                        <p class="text-[10px] text-slate-400 leading-relaxed max-h-24 overflow-y-auto no-scrollbar">
+                            RanKingGo es una plataforma de software independiente de emparejamiento. El transportista declara poseer licencia vigente, seguro de responsabilidad civil y asumir total responsabilidad vial de los traslados ejecutados en Charallave. El pasajero viaja bajo su propia cuenta y riesgo.
+                        </p>
+                        <div class="flex items-center gap-2 mt-3">
+                            <input type="checkbox" id="reg-legal" class="rounded bg-slate-950 border-slate-850 text-amber-500 focus:ring-amber-500">
+                            <label for="reg-legal" class="text-[10px] text-slate-300 font-semibold select-none">Acepto los términos y contrato legal</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <button onclick="submitRegistration()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black p-4 rounded-xl mt-6 transition transform active:scale-95 shadow-md flex items-center justify-center gap-2">
+                <i data-lucide="check-circle" class="w-5 h-5"></i>
+                <span>COMPLETAR REGISTRO</span>
+            </button>
+        </div>
+
+        <!-- SCREEN 3: Mapa de Viajes del Pasajero -->
+        <div id="screen-passenger-map" class="absolute inset-0 z-20 hidden flex flex-col justify-end">
+            <!-- Botón Volver al Menú flotando arriba a la izquierda -->
+            <button onclick="navigate('screen-welcome')" class="absolute top-4 left-4 p-3 bg-slate-900 border border-slate-800 rounded-2xl text-slate-200 active:scale-90 shadow-2xl z-[1000] flex items-center gap-1 font-bold text-xs">
+                <i data-lucide="home" class="w-4 h-4"></i>
+                <span>Menú</span>
+            </button>
+
+            <!-- Mapa Georreferenciado Leaflet -->
+            <div id="map" class="absolute inset-0 z-0"></div>
+
+            <!-- Panel de Cotización Táctil Pasajero -->
+            <div class="relative bg-slate-950 border-t border-slate-800 p-4 rounded-t-3xl shadow-2xl z-10 space-y-4">
+                <!-- Arrastrar indicador visual -->
+                <div class="w-12 h-1 bg-slate-800 rounded-full mx-auto -mt-1 mb-2"></div>
+
+                <div class="flex justify-between items-center bg-slate-900 p-3 rounded-2xl border border-slate-850">
+                    <div>
+                        <p class="text-slate-400 text-[9px] uppercase font-bold tracking-wider">Distancia Vial</p>
+                        <p id="distancia-texto" class="text-base font-black text-amber-500">Calculando...</p>
+                    </div>
+                    <div class="h-8 w-[1px] bg-slate-800"></div>
+                    <div>
+                        <p class="text-slate-400 text-[9px] uppercase font-bold tracking-wider">Tarifa Oficial</p>
+                        <p id="precio-texto" class="text-base font-black text-emerald-400">Calculando...</p>
+                    </div>
+                </div>
+
+                <!-- Botón de Envío Oficial de Datos a Telegram -->
+                <button id="btn-confirmar" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-4 rounded-2xl transition duration-150 flex items-center justify-center gap-2 shadow-lg active:scale-95">
+                    <i data-lucide="check-square" class="w-5 h-5"></i>
+                    <span>SOLICITAR VIAJE DE INMEDIATO</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- SCREEN 4: Consola de Trabajo del Conductor -->
+        <div id="screen-driver-portal" class="absolute inset-0 z-10 hidden bg-slate-950 flex flex-col justify-between p-6 overflow-y-auto no-scrollbar">
+            <div>
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center gap-2">
+                        <button onclick="navigate('screen-welcome')" class="p-2 bg-slate-900 rounded-lg text-slate-300 active:scale-90">
+                            <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                        </button>
+                        <h2 class="text-xl font-bold text-slate-100">Consola Conductor</h2>
+                    </div>
+                    <!-- Estado de Actividad -->
+                    <button id="btn-status-toggle" onclick="toggleActiveStatus()" class="px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1 bg-emerald-500/10 text-emerald-400 border-emerald-500/20 active:scale-95 transition">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span id="txt-status-active">ACTIVO / LIBRE</span>
+                    </button>
+                </div>
+
+                <!-- Estadísticas de Facturación / Bote Acumulado -->
+                <div class="grid grid-cols-2 gap-3 mb-6">
+                    <div class="bg-slate-900 p-4 rounded-2xl border border-slate-850">
+                        <p class="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">Tu Código</p>
+                        <p id="driver-code-display" class="text-xl font-black text-amber-500">M-000</p>
+                    </div>
+                    <div class="bg-slate-900 p-4 rounded-2xl border border-slate-850">
+                        <p class="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">Pozo Acumulado</p>
+                        <p id="system-bote-display" class="text-xl font-black text-emerald-400">--- Bs.</p>
+                    </div>
+                </div>
+
+                <!-- Cuadro de Rastreo Satelital Activo -->
+                <div class="bg-slate-900/60 p-4 rounded-2xl border border-slate-850/60 flex items-center justify-between mb-6">
+                    <div class="flex items-center gap-3">
+                        <div class="p-3 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20">
+                            <i data-lucide="satellite" class="w-6 h-6 animate-spin"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-bold text-slate-200">Rastreo GPS Satelital</h4>
+                            <p class="text-[10px] text-slate-400 mt-0.5">Enviando coordenadas en segundo plano.</p>
+                        </div>
+                    </div>
+                    <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase">Activo</span>
+                </div>
+
+                <!-- Lista de Viajes Pendientes / Historial de Solicitudes -->
+                <div>
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Solicitudes de Punto Ciego Cercanas</h3>
+                    <div id="driver-offers-container" class="space-y-3">
+                        <!-- Estado de Espera Pasivo -->
+                        <div class="p-6 bg-slate-900/40 border border-slate-850/50 rounded-2xl text-center">
+                            <i data-lucide="loader2" class="w-8 h-8 text-slate-600 animate-spin mx-auto mb-2"></i>
+                            <p class="text-slate-500 text-xs font-bold">Escuchando ofertas satelitales...</p>
+                            <p class="text-[10px] text-slate-600 mt-1">El despacho automático te enviará un push apenas un cliente cercano pague.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botones Rápidos de Soporte -->
+            <div class="mt-6 border-t border-slate-900 pt-4 flex gap-2">
+                <button onclick="tg.openLink('https://t.me/CharallaveMotoOficial')" class="flex-1 bg-slate-900 border border-slate-850 py-3 rounded-xl text-xs font-bold text-slate-400 flex items-center justify-center gap-1.5 active:scale-95 transition">
+                    <i data-lucide="message-square" class="w-4 h-4"></i>
+                    <span>Soporte Central</span>
+                </button>
+            </div>
+        </div>
+
     </div>
 
-    <!-- Leaflet JS -->
+    <!-- Leaflet JS Map Engine -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Inicializar el SDK de Telegram WebApp
+        // SDK de Telegram WebApp
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
 
-        // Coordenadas base (Centro de Charallave, Miranda)
+        // Inicializar Lucide Icons
+        lucide.createIcons();
+
+        // Estado del usuario activo
+        let userTelegramId = tg.initDataUnsafe?.user?.id || 12345678;
+        let userFirstName = tg.initDataUnsafe?.user?.first_name || "Pasajero Local";
+        document.getElementById('user-display-name').innerText = userFirstName;
+
+        // Estado del formulario de registro
+        let currentRegType = 'client'; // 'client' o 'driver'
+
+        // Coordenadas base (Centro de Charallave)
         let latDefault = 10.2157;
         let lonDefault = -66.8608;
+        let mapInstance = null;
+        let originMarker, destMarker, routeLine;
 
-        // Inicializar Mapa en tono claro elegante (CartoDB Positron)
-        const map = L.map('map', {
-            zoomControl: false
-        }).setView([latDefault, lonDefault], 14);
+        // Estado de disponibilidad del conductor
+        let isDriverActive = true;
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            attribution: '© OpenStreetMap contributors, CartoDB'
-        }).addTo(map);
-
-        L.control.zoom({ position: 'topright' }).addTo(map);
-
-        // Marcador Origen "A" (¡Ahora arrastrable!)
-        const originMarker = L.marker([latDefault, lonDefault], {
-            draggable: true,
-            icon: L.divIcon({
-                className: 'custom-div-icon',
-                html: "<div class='w-6 h-6 bg-blue-600 border-2 border-white rounded-full flex items-center justify-center font-bold text-xs text-white shadow-lg'>A</div>",
-                iconSize: [24, 24]
-            })
-        }).addTo(map).bindPopup("🏠 Ubicación de Origen (Arrastusable)");
-
-        // Marcador Destino "B" (Arrastrable)
-        const destMarker = L.marker([10.2200, -66.8650], {
-            draggable: true,
-            icon: L.divIcon({
-                className: 'custom-div-icon',
-                html: "<div class='w-6 h-6 bg-red-600 border-2 border-white rounded-full flex items-center justify-center font-bold text-xs text-white shadow-lg animate-bounce'>B</div>",
-                iconSize: [24, 24]
-            })
-        }).addTo(map);
-
-        // Línea de ruta vial dinámica
-        let routeLine = L.polyline([], {
-            color: '#2563eb', // Azul vial nítido
-            weight: 5,
-            opacity: 0.85
-        }).addTo(map);
-
-        // Intento de obtener Ubicación Real por GPS del dispositivo
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const gpsLat = position.coords.latitude;
-                    const gpsLon = position.coords.longitude;
-                    originMarker.setLatLng([gpsLat, gpsLon]);
-                    map.setView([gpsLat, gpsLon], 15);
-                    actualizarMetricas();
-                },
-                (error) => {
-                    console.warn("Acceso GPS denegado o no disponible. Usando Charallave Centro por defecto.", error);
-                    actualizarMetricas();
+        // Navegación de Screens (Single Page UI)
+        function navigate(screenId) {
+            const screens = ['screen-welcome', 'screen-register', 'screen-passenger-map', 'screen-driver-portal'];
+            screens.forEach(id => {
+                const el = document.getElementById(id);
+                if (id === screenId) {
+                    el.classList.remove('hidden');
+                } else {
+                    el.classList.add('hidden');
                 }
-            );
-        } else {
-            actualizarMetricas();
+            });
+
+            // Ajustes dinámicos del subtítulo del header
+            const subtitle = document.getElementById('app-status-subtitle');
+            if (screenId === 'screen-welcome') subtitle.innerText = "Portal de Servicios";
+            if (screenId === 'screen-register') subtitle.innerText = "Formulario de Afiliación";
+            if (screenId === 'screen-passenger-map') {
+                subtitle.innerText = "Sondeo de Moto Taxis";
+                initializeMapOnce();
+            }
+            if (screenId === 'screen-driver-portal') subtitle.innerText = "Consola de Despacho";
         }
 
-        // Función matemática base como plan B (Haversine)
-        function calcularDistanciaHaversine(lat1, lon1, lat2, lon2) {
+        // Configuración dinámica del tabulador de registro
+        function setRegType(type) {
+            currentRegType = type;
+            const tabClient = document.getElementById('tab-reg-client');
+            const tabDriver = document.getElementById('tab-reg-driver');
+            const driverFields = document.getElementById('driver-fields');
+
+            if (type === 'client') {
+                tabClient.className = "py-2.5 rounded-lg text-xs font-black text-black bg-amber-500 transition-all";
+                tabDriver.className = "py-2.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200 transition-all";
+                driverFields.classList.add('hidden');
+            } else {
+                tabDriver.className = "py-2.5 rounded-lg text-xs font-black text-black bg-amber-500 transition-all";
+                tabClient.className = "py-2.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200 transition-all";
+                driverFields.classList.remove('hidden');
+            }
+        }
+
+        function startRegistrationFlow() {
+            navigate('screen-register');
+            setRegType('client');
+        }
+
+        // Inicializar el mapa inteligente en vivo
+        function initializeMapOnce() {
+            if (mapInstance) return; // Evita reinicializaciones que dañan el DOM de Leaflet
+
+            mapInstance = L.map('map', {
+                zoomControl: false
+            }).setView([latDefault, lonDefault], 14);
+
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '© OpenStreetMap contributors, CartoDB'
+            }).addTo(mapInstance);
+
+            L.control.zoom({ position: 'topright' }).addTo(mapInstance);
+
+            // Marcador Origen A (Personalizado Azul)
+            originMarker = L.marker([latDefault, lonDefault], {
+                draggable: true,
+                icon: L.divIcon({
+                    className: 'custom-div-icon',
+                    html: "<div class='w-7 h-7 bg-blue-500 border-2 border-slate-900 rounded-full flex items-center justify-center font-black text-xs text-white shadow-xl'>A</div>",
+                    iconSize: [28, 28]
+                })
+            }).addTo(mapInstance);
+
+            // Marcador Destino B (Personalizado Amarillo)
+            destMarker = L.marker([10.2210, -66.8655], {
+                draggable: true,
+                icon: L.divIcon({
+                    className: 'custom-div-icon',
+                    html: "<div class='w-7 h-7 bg-amber-500 border-2 border-slate-900 rounded-full flex items-center justify-center font-black text-xs text-black shadow-xl animate-bounce'>B</div>",
+                    iconSize: [28, 28]
+                })
+            }).addTo(mapInstance);
+
+            routeLine = L.polyline([], {
+                color: '#f59e0b', // Amarillo ámbar
+                weight: 5,
+                opacity: 0.85
+            }).addTo(mapInstance);
+
+            // Intentar Geolocalización GPS del teléfono
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const gpsLat = position.coords.latitude;
+                        const gpsLon = position.coords.longitude;
+                        originMarker.setLatLng([gpsLat, gpsLon]);
+                        mapInstance.setView([gpsLat, gpsLon], 15);
+                        actualizarCalculosViales();
+                    },
+                    (error) => {
+                        console.warn("GPS no disponible, usando centro por defecto.", error);
+                        actualizarCalculosViales();
+                    }
+                );
+            } else {
+                actualizarCalculosViales();
+            }
+
+            // Atar eventos de arrastre para cálculo en tiempo real
+            const updateLinePreview = () => {
+                routeLine.setLatLngs([originMarker.getLatLng(), destMarker.getLatLng()]);
+            };
+
+            originMarker.on('drag', updateLinePreview);
+            destMarker.on('drag', updateLinePreview);
+
+            originMarker.on('dragend', actualizarCalculosViales);
+            destMarker.on('dragend', actualizarCalculosViales);
+        }
+
+        // OSRM API y Haversine Integrado
+        function calcularDistanciaLineal(lat1, lon1, lat2, lon2) {
             const R = 6371;
             const dLat = (lat2 - lat1) * Math.PI / 180;
             const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = 
-                Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         }
 
-        // Lógica de cálculo dinámico de distancia y tarifas viales reales
-        async function actualizarMetricas() {
+        async function actualizarCalculosViales() {
             const posA = originMarker.getLatLng();
             const posB = destMarker.getLatLng();
             
-            let distanciaFinalKm = calcularDistanciaHaversine(posA.lat, posA.lng, posB.lat, posB.lng) * 1.25; // Fallback lineal
-            let rutaCoordenadas = [posA, posB];
+            let distanciaFinalKm = calcularDistanciaLineal(posA.lat, posA.lng, posB.lat, posB.lng) * 1.25; // Factor calles promedio
+            let trayectoCoordenadas = [posA, posB];
 
-            // 1. Llamada a la API de Ruteo Real (OSRM)
             try {
                 const urlRouting = `https://router.project-osrm.org/route/v1/driving/${posA.lng},${posA.lat};${posB.lng},${posB.lat}?overview=full&geometries=geojson`;
-                const response = await fetch(urlRouting);
-                if (response.ok) {
-                    const data = await response.json();
+                const res = await fetch(urlRouting);
+                if (res.ok) {
+                    const data = await res.json();
                     if (data.routes && data.routes.length > 0) {
-                        const route = data.routes[0];
-                        distanciaFinalKm = route.distance / 1000; // Convertimos de metros a kilómetros reales
-                        
-                        // Decodificamos el trayecto geográfico
-                        const geojsonCoords = route.geometry.coordinates;
-                        rutaCoordenadas = geojsonCoords.map(c => [c[1], c[0]]); // Invertimos lng/lat a lat/lng para Leaflet
+                        distanciaFinalKm = data.routes[0].distance / 1000;
+                        trayectoCoordenadas = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
                     }
                 }
-            } catch (err) {
-                console.warn("Fallo temporal en el servidor OSRM, usando estimación lineal.", err);
+            } catch (e) {
+                console.warn("Error en ruteador real, usando aproximación lineal.");
             }
 
-            // Pintar la línea vial real sobre el mapa
-            routeLine.setLatLngs(rutaCoordenadas);
+            routeLine.setLatLngs(trayectoCoordenadas);
 
-            // 2. Lógica de Tarifa Mínima e Integración con Servidor Local Flask
-            let tasaDolar = 45.00; // Tasa por defecto
+            // Consultar datos reales de tasa al endpoint de Flask
+            let tasaDolar = 45.00;
             try {
                 const configRes = await fetch('/admin/data');
                 if (configRes.ok) {
@@ -184,42 +470,146 @@
                     tasaDolar = dataConfig.tasa_actual || 45.00;
                 }
             } catch (e) {
-                console.log("No se pudo leer la tasa en vivo, usando tasa por defecto.");
+                console.log("Error leyendo tasa, usando fallback 45.00 Bs.");
             }
 
-            // Tarifa en dólares: Mínimo 0.50$ si la distancia es < 2km. 
-            // Si es mayor, cobramos $0.50 base más $0.25 por kilómetro adicional.
+            // Calcular Tarifa
             let precioUsd = 0.50;
             if (distanciaFinalKm >= 2.00) {
                 precioUsd = 0.50 + ((distanciaFinalKm - 2.00) * 0.25);
             }
-
             const precioBs = precioUsd * tasaDolar;
 
-            // Renderizar resultados en la interfaz táctil
             document.getElementById('distancia-texto').innerText = `${distanciaFinalKm.toFixed(2)} km`;
             document.getElementById('precio-texto').innerText = `${precioBs.toFixed(2)} Bs.`;
         }
 
-        // Trazado veloz en línea recta al arrastrar para garantizar fluidez visual
-        const trazarLineaRapida = () => {
-            routeLine.setLatLngs([originMarker.getLatLng(), destMarker.getLatLng()]);
-        };
+        // Procesamiento de Registros vía API o tg.sendData
+        async function submitRegistration() {
+            const nombre = document.getElementById('reg-nombre').value.trim();
+            const cedula = document.getElementById('reg-cedula').value.trim();
+            const placa = document.getElementById('reg-placa').value.trim();
+            const banco = document.getElementById('reg-banco').value;
+            const telefono = document.getElementById('reg-telefono').value.trim();
+            const legalChecked = document.getElementById('reg-legal').checked;
 
-        destMarker.on('drag', trazarLineaRapida);
-        originMarker.on('drag', trazarLineaRapida);
+            if (!nombre || !cedula) {
+                tg.showAlert("❌ Nombre y Cédula son obligatorios para validar su identidad.");
+                return;
+            }
+            if (currentRegType === 'driver' && (!placa || !telefono)) {
+                tg.showAlert("❌ Los datos del vehículo y Pago Móvil son obligatorios para conductores.");
+                return;
+            }
+            if (!legalChecked) {
+                tg.showAlert("❌ Debe aceptar el contrato legal y descargo de responsabilidad.");
+                return;
+            }
 
-        // Llamar al ruteador oficial al soltar los marcadores
-        destMarker.on('dragend', actualizarMetricas);
-        originMarker.on('dragend', actualizarMetricas);
+            const payload = {
+                event: 'registration',
+                type: currentRegType,
+                user_id: userTelegramId,
+                nombre: nombre,
+                cedula: cedula,
+                placa: currentRegType === 'driver' ? placa : null,
+                banco: currentRegType === 'driver' ? banco : null,
+                telefono: currentRegType === 'driver' ? telefono : null
+            };
 
-        // Al presionar confirmar, empaquetamos el JSON y lo devolvemos con seguridad a Telegram
+            // Intentar mandar los datos por una petición AJAX al servidor Flask directamente
+            try {
+                tg.showScanQrPopup; // Preparar indicador de carga de telegram
+                const response = await fetch('/api/registrar_usuario', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    const resData = await response.json();
+                    tg.showAlert(`🎉 ¡Felicidades! Registro completado con éxito. Tu código es: ${resData.id_codigo}`);
+                    navigate('screen-welcome');
+                } else {
+                    tg.showAlert("❌ Ocurrió un error en el servidor de registro. Intente nuevamente.");
+                }
+            } catch (err) {
+                // Fallback: Mandarlo a través del canal clásico sendData si la API falla de inmediato
+                tg.sendData(JSON.stringify(payload));
+                tg.close();
+            }
+        }
+
+        // Consultar Base de Datos para el Portal del Conductor
+        async function checkDriverStatus() {
+            try {
+                const res = await fetch(`/api/conductor_perfil?telegram_id=${userTelegramId}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.registrado) {
+                        document.getElementById('driver-code-display').innerText = data.id_conductor;
+                        document.getElementById('system-bote-display').innerText = `${data.bote_acumulado.toFixed(2)} Bs.`;
+                        
+                        // Configurar botón de estado de acuerdo a la BD
+                        isDriverActive = data.estado === 'LIBRE';
+                        updateStatusButtonUI();
+
+                        navigate('screen-driver-portal');
+                    } else {
+                        tg.showConfirm(
+                            "🏍️ No te encuentras registrado como Conductor.\n\n¿Deseas registrarte ahora en la flota oficial?",
+                            (confirmed) => {
+                                if (confirmed) {
+                                    navigate('screen-register');
+                                    setRegType('driver');
+                                }
+                            }
+                        );
+                    }
+                }
+            } catch (e) {
+                tg.showAlert("❌ No se pudo conectar al servidor local de RanKingGo.");
+            }
+        }
+
+        function updateStatusButtonUI() {
+            const btn = document.getElementById('btn-status-toggle');
+            const txt = document.getElementById('txt-status-active');
+            if (isDriverActive) {
+                btn.className = "px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1 bg-emerald-500/10 text-emerald-400 border-emerald-500/20 active:scale-95 transition";
+                txt.innerText = "ACTIVO / LIBRE";
+            } else {
+                btn.className = "px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1 bg-rose-500/10 text-rose-400 border-rose-500/20 active:scale-95 transition";
+                txt.innerText = "FUERA DE SERVICIO";
+            }
+        }
+
+        async function toggleActiveStatus() {
+            isDriverActive = !isDriverActive;
+            updateStatusButtonUI();
+
+            try {
+                await fetch('/api/conductor_cambiar_estado', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        telegram_id: userTelegramId,
+                        estado: isDriverActive ? 'LIBRE' : 'INACTIVO'
+                    })
+                });
+            } catch (e) {
+                console.error("No se pudo sincronizar el cambio de estado con el servidor.");
+            }
+        }
+
+        // Confirmar ruta del Pasajero
         document.getElementById('btn-confirmar').addEventListener('click', () => {
             const posA = originMarker.getLatLng();
             const posB = destMarker.getLatLng();
             const distancia = parseFloat(document.getElementById('distancia-texto').innerText);
             
             const payload = {
+                event: 'request_trip',
                 dest_lat: posB.lat,
                 dest_lon: posB.lng,
                 orig_lat: posA.lat,
@@ -227,7 +617,7 @@
                 distancia_km: distancia
             };
 
-            // Envía la información al bot y cierra la WebApp
+            // Retorna los datos con seguridad a Telegram cerrando la vista
             tg.sendData(JSON.stringify(payload));
             tg.close();
         });
