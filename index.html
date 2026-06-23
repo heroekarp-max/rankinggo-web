@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RanKingGo - Mapa de Charallave</title>
+    <!-- Tailwind CSS para diseño moderno -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Leaflet CSS para el mapa interactivo -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background-color: #121212;
+            color: #ffffff;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        #map {
+            height: calc(100vh - 190px);
+            width: 100%;
+        }
+        /* Personalización oscura para Leaflet */
+        .leaflet-container {
+            background: #1e1e1e !important;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Encabezado de la App -->
+    <div class="p-4 bg-yellow-500 text-black flex items-center justify-between shadow-lg">
+        <div>
+            <h1 class="font-extrabold text-lg tracking-wider">🚀 RAN KING GO</h1>
+            <p class="text-xs font-semibold opacity-80">Selecciona tu Ruta en Charallave</p>
+        </div>
+        <div class="text-right">
+            <span class="bg-black text-yellow-500 text-[10px] font-bold px-2 py-1 rounded-full uppercase">Fase 1 Web</span>
+        </div>
+    </div>
+
+    <!-- Contenedor del Mapa -->
+    <div id="map" class="relative"></div>
+
+    <!-- Panel de Cotización Táctil -->
+    <div class="absolute bottom-0 left-0 w-full bg-stone-900 border-t border-stone-800 p-4 rounded-t-3xl shadow-2xl z-[1000]">
+        <div class="flex justify-between items-center mb-3">
+            <div>
+                <p class="text-stone-400 text-xs uppercase font-bold tracking-wider">Distancia Estimada</p>
+                <p id="distancia-texto" class="text-xl font-black text-yellow-500">0,00 km</p>
+            </div>
+            <div class="text-right">
+                <p class="text-stone-400 text-xs uppercase font-bold tracking-wider">Tarifa Sugerida</p>
+                <p id="precio-texto" class="text-xl font-black text-emerald-400">0,00 Bs.</p>
+            </div>
+        </div>
+
+        <!-- Botón de Envío Oficial al Bot -->
+        <button id="btn-confirmar" class="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-extrabold py-3.5 rounded-xl transition duration-150 flex items-center justify-center gap-2 shadow-lg shadow-yellow-500/20 active:scale-95">
+            📍 CONFIRMAR RUTA
+        </button>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Inicializar el SDK de Telegram WebApp
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand(); // Abre la pantalla completa dentro del chat
+
+        // Coordenadas base (Centro de Charallave, Miranda)
+        const charallaveLat = 10.2157;
+        const charallaveLon = -66.8608;
+
+        // Inicializar Mapa centrado en Charallave
+        const map = L.map('map', {
+            zoomControl: false // Desactivamos botones de zoom para interfaz limpia
+        }).setView([charallaveLat, charallaveLon], 14);
+
+        // Capa de mapas oscura elegante (CartoDB Dark Matter)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Añadimos control de zoom arriba a la derecha
+        L.control.zoom({ position: 'topright' }).addTo(map);
+
+        // Marcadores de Origen (Fijo) y Destino (Arrastrable)
+        const originMarker = L.marker([charallaveLat, charallaveLon], {
+            icon: L.divIcon({
+                className: 'custom-div-icon',
+                html: "<div class='w-6 h-6 bg-blue-500 border-2 border-white rounded-full flex items-center justify-center font-bold text-xs text-white shadow-lg'>A</div>",
+                iconSize: [24, 24]
+            })
+        }).addTo(map).bindPopup("🏠 Tu Ubicación Actual");
+
+        const destMarker = L.marker([10.2200, -66.8650], {
+            draggable: true,
+            icon: L.divIcon({
+                className: 'custom-div-icon',
+                html: "<div class='w-6 h-6 bg-red-500 border-2 border-white rounded-full flex items-center justify-center font-bold text-xs text-white shadow-lg animate-bounce'>B</div>",
+                iconSize: [24, 24]
+            })
+        }).addTo(map);
+
+        // Trazar línea de ruta simple
+        let routeLine = L.polyline([originMarker.getLatLng(), destMarker.getLatLng()], {
+            color: '#eab308',
+            weight: 4,
+            opacity: 0.8,
+            dashArray: '5, 10'
+        }).addTo(map);
+
+        // Fórmula Matemática del Semiverseno en JS para cálculo instantáneo
+        function calcularDistanciaHaversine(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Radio de la Tierra en km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = 
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        // Simulación de cálculo de precio basado en tu tasa (ej. 1$ base + 0.5$ por km a tasa fija de ejemplo de 45 Bs)
+        function actualizarMetricas() {
+            const posA = originMarker.getLatLng();
+            const posB = destMarker.getLatLng();
+            
+            // Calculamos distancia aérea básica
+            const distancia = calcularDistanciaHaversine(posA.lat, posA.lng, posB.lat, posB.lng);
+            
+            // Incrementamos un 25% para simular calles reales antes de tener un ruteador completo
+            const distanciaAjustada = distancia * 1.25; 
+            
+            // Precio en Bolívares simulado (Tasa ejemplo de 45.00 Bs/$)
+            const precioBs = 45.00 + (distanciaAjustada * 15.00);
+
+            // Pintar en pantalla
+            document.getElementById('distancia-texto').innerText = `${distanciaAjustada.toFixed(2)} km`;
+            document.getElementById('precio-texto').innerText = `${precioBs.toFixed(2)} Bs.`;
+
+            // Actualizar línea visual en el mapa
+            routeLine.setLatLngs([posA, posB]);
+        }
+
+        // Ejecutar cálculo al arrastrar el marcador de destino
+        destMarker.on('drag', actualizarMetricas);
+
+        // Al presionar confirmar, mandamos los datos directamente de vuelta a Telegram
+        document.getElementById('btn-confirmar').addEventListener('click', () => {
+            const posB = destMarker.getLatLng();
+            const distancia = parseFloat(document.getElementById('distancia-texto').innerText);
+            
+            const payload = {
+                dest_lat: posB.lat,
+                dest_lon: posB.lng,
+                distancia_km: distancia
+            };
+
+            // El SDK de Telegram WebApp envía este JSON de vuelta al bot
+            tg.sendData(JSON.stringify(payload));
+            tg.close(); // Cierra la WebApp de forma limpia
+        });
+
+        // Carga inicial
+        actualizarMetricas();
+    </script>
+</body>
+</html>
