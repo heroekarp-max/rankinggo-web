@@ -294,8 +294,8 @@
         let currentRegType = 'client';
 
         // Centro base para Charallave (Valles del Tuy)
-        let latDefault = 10.2157;
-        let lonDefault = -66.8608;
+        let latDefault = 10.237206976781579;
+        let lonDefault = -66.85725073585685;
         let mapInstance = null;
         let originMarker, destMarker, routeLine;
 
@@ -446,12 +446,12 @@
             routeLine.setLatLngs(trayectoCoordenadas);
 
             // Obtener tipo de cambio del bolívar en vivo desde el backend Flask
-            let tasaDolar = 45.00;
+            let tasaDolar = 600.00;
             try {
                 const configRes = await fetch('/admin/data');
                 if (configRes.ok) {
                     const dataConfig = await configRes.json();
-                    tasaDolar = dataConfig.tasa_actual || 45.00;
+                    tasaDolar = dataConfig.tasa_actual || 600.00;
                 }
             } catch (e) {
                 console.log("No se pudo leer la tasa del backend. Usando fallback.");
