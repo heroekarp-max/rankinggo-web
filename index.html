@@ -15,30 +15,30 @@
             margin: 0;
             padding: 0;
             height: 100%;
-            background-color: #121212;
-            color: #ffffff;
+            background-color: #f3f4f6;
+            color: #1f2937;
             font-family: system-ui, -apple-system, sans-serif;
         }
         #map {
             height: calc(100vh - 190px);
             width: 100%;
         }
-        /* Personalización oscura para Leaflet */
+        /* Personalización elegante para Leaflet */
         .leaflet-container {
-            background: #1e1e1e !important;
+            background: #e5e7eb !important;
         }
     </style>
 </head>
 <body>
 
     <!-- Encabezado de la App -->
-    <div class="p-4 bg-yellow-500 text-black flex items-center justify-between shadow-lg">
+    <div class="p-4 bg-yellow-500 text-black flex items-center justify-between shadow-md">
         <div>
             <h1 class="font-extrabold text-lg tracking-wider">🚀 RAN KING GO</h1>
-            <p class="text-xs font-semibold opacity-80">Selecciona tu Ruta en Charallave</p>
+            <p class="text-xs font-semibold opacity-90">Traza tu ruta vial en tiempo real</p>
         </div>
         <div class="text-right">
-            <span class="bg-black text-yellow-500 text-[10px] font-bold px-2 py-1 rounded-full uppercase">Fase 1 Web</span>
+            <span class="bg-black text-yellow-500 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase">GPS ACTIVO</span>
         </div>
     </div>
 
@@ -46,21 +46,21 @@
     <div id="map" class="relative"></div>
 
     <!-- Panel de Cotización Táctil -->
-    <div class="absolute bottom-0 left-0 w-full bg-stone-900 border-t border-stone-800 p-4 rounded-t-3xl shadow-2xl z-[1000]">
+    <div class="absolute bottom-0 left-0 w-full bg-white border-t border-gray-200 p-4 rounded-t-3xl shadow-2xl z-[1000]">
         <div class="flex justify-between items-center mb-3">
             <div>
-                <p class="text-stone-400 text-xs uppercase font-bold tracking-wider">Distancia Estimada</p>
-                <p id="distancia-texto" class="text-xl font-black text-yellow-500">0,00 km</p>
+                <p class="text-gray-500 text-xs uppercase font-bold tracking-wider">Distancia Real (Vías)</p>
+                <p id="distancia-texto" class="text-xl font-black text-blue-600">Calculando...</p>
             </div>
             <div class="text-right">
-                <p class="text-stone-400 text-xs uppercase font-bold tracking-wider">Tarifa Sugerida</p>
-                <p id="precio-texto" class="text-xl font-black text-emerald-400">0,00 Bs.</p>
+                <p class="text-gray-500 text-xs uppercase font-bold tracking-wider">Tarifa Sugerida</p>
+                <p id="precio-texto" class="text-xl font-black text-emerald-600">Calculando...</p>
             </div>
         </div>
 
         <!-- Botón de Envío Oficial al Bot -->
-        <button id="btn-confirmar" class="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-extrabold py-3.5 rounded-xl transition duration-150 flex items-center justify-center gap-2 shadow-lg shadow-yellow-500/20 active:scale-95">
-            📍 CONFIRMAR RUTA
+        <button id="btn-confirmar" class="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-extrabold py-3.5 rounded-xl transition duration-150 flex items-center justify-center gap-2 shadow-lg active:scale-95">
+            📍 CONFIRMAR ORIGEN Y DESTINO
         </button>
     </div>
 
@@ -70,54 +70,72 @@
         // Inicializar el SDK de Telegram WebApp
         const tg = window.Telegram.WebApp;
         tg.ready();
-        tg.expand(); // Abre la pantalla completa dentro del chat
+        tg.expand();
 
         // Coordenadas base (Centro de Charallave, Miranda)
-        const charallaveLat = 10.2157;
-        const charallaveLon = -66.8608;
+        let latDefault = 10.2157;
+        let lonDefault = -66.8608;
 
-        // Inicializar Mapa centrado en Charallave
+        // Inicializar Mapa en tono claro elegante (CartoDB Positron)
         const map = L.map('map', {
-            zoomControl: false // Desactivamos botones de zoom para interfaz limpia
-        }).setView([charallaveLat, charallaveLon], 14);
+            zoomControl: false
+        }).setView([latDefault, lonDefault], 14);
 
-        // Capa de mapas oscura elegante (CartoDB Dark Matter)
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '© OpenStreetMap contributors'
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '© OpenStreetMap contributors, CartoDB'
         }).addTo(map);
 
-        // Añadimos control de zoom arriba a la derecha
         L.control.zoom({ position: 'topright' }).addTo(map);
 
-        // Marcadores de Origen (Fijo) y Destino (Arrastrable)
-        const originMarker = L.marker([charallaveLat, charallaveLon], {
+        // Marcador Origen "A" (¡Ahora arrastrable!)
+        const originMarker = L.marker([latDefault, lonDefault], {
+            draggable: true,
             icon: L.divIcon({
                 className: 'custom-div-icon',
-                html: "<div class='w-6 h-6 bg-blue-500 border-2 border-white rounded-full flex items-center justify-center font-bold text-xs text-white shadow-lg'>A</div>",
+                html: "<div class='w-6 h-6 bg-blue-600 border-2 border-white rounded-full flex items-center justify-center font-bold text-xs text-white shadow-lg'>A</div>",
                 iconSize: [24, 24]
             })
-        }).addTo(map).bindPopup("🏠 Tu Ubicación Actual");
+        }).addTo(map).bindPopup("🏠 Ubicación de Origen (Arrastusable)");
 
+        // Marcador Destino "B" (Arrastrable)
         const destMarker = L.marker([10.2200, -66.8650], {
             draggable: true,
             icon: L.divIcon({
                 className: 'custom-div-icon',
-                html: "<div class='w-6 h-6 bg-red-500 border-2 border-white rounded-full flex items-center justify-center font-bold text-xs text-white shadow-lg animate-bounce'>B</div>",
+                html: "<div class='w-6 h-6 bg-red-600 border-2 border-white rounded-full flex items-center justify-center font-bold text-xs text-white shadow-lg animate-bounce'>B</div>",
                 iconSize: [24, 24]
             })
         }).addTo(map);
 
-        // Trazar línea de ruta simple
-        let routeLine = L.polyline([originMarker.getLatLng(), destMarker.getLatLng()], {
-            color: '#eab308',
-            weight: 4,
-            opacity: 0.8,
-            dashArray: '5, 10'
+        // Línea de ruta vial dinámica
+        let routeLine = L.polyline([], {
+            color: '#2563eb', // Azul vial nítido
+            weight: 5,
+            opacity: 0.85
         }).addTo(map);
 
-        // Fórmula Matemática del Semiverseno en JS para cálculo instantáneo
+        // Intento de obtener Ubicación Real por GPS del dispositivo
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const gpsLat = position.coords.latitude;
+                    const gpsLon = position.coords.longitude;
+                    originMarker.setLatLng([gpsLat, gpsLon]);
+                    map.setView([gpsLat, gpsLon], 15);
+                    actualizarMetricas();
+                },
+                (error) => {
+                    console.warn("Acceso GPS denegado o no disponible. Usando Charallave Centro por defecto.", error);
+                    actualizarMetricas();
+                }
+            );
+        } else {
+            actualizarMetricas();
+        }
+
+        // Función matemática base como plan B (Haversine)
         function calcularDistanciaHaversine(lat1, lon1, lat2, lon2) {
-            const R = 6371; // Radio de la Tierra en km
+            const R = 6371;
             const dLat = (lat2 - lat1) * Math.PI / 180;
             const dLon = (lon2 - lon1) * Math.PI / 180;
             const a = 
@@ -127,49 +145,92 @@
             return R * c;
         }
 
-        // Simulación de cálculo de precio basado en tu tasa (ej. 1$ base + 0.5$ por km a tasa fija de ejemplo de 45 Bs)
-        function actualizarMetricas() {
+        // Lógica de cálculo dinámico de distancia y tarifas viales reales
+        async function actualizarMetricas() {
             const posA = originMarker.getLatLng();
             const posB = destMarker.getLatLng();
             
-            // Calculamos distancia aérea básica
-            const distancia = calcularDistanciaHaversine(posA.lat, posA.lng, posB.lat, posB.lng);
-            
-            // Incrementamos un 25% para simular calles reales antes de tener un ruteador completo
-            const distanciaAjustada = distancia * 1.25; 
-            
-            // Precio en Bolívares simulado (Tasa ejemplo de 45.00 Bs/$)
-            const precioBs = 45.00 + (distanciaAjustada * 15.00);
+            let distanciaFinalKm = calcularDistanciaHaversine(posA.lat, posA.lng, posB.lat, posB.lng) * 1.25; // Fallback lineal
+            let rutaCoordenadas = [posA, posB];
 
-            // Pintar en pantalla
-            document.getElementById('distancia-texto').innerText = `${distanciaAjustada.toFixed(2)} km`;
+            // 1. Llamada a la API de Ruteo Real (OSRM)
+            try {
+                const urlRouting = `https://router.project-osrm.org/route/v1/driving/${posA.lng},${posA.lat};${posB.lng},${posB.lat}?overview=full&geometries=geojson`;
+                const response = await fetch(urlRouting);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.routes && data.routes.length > 0) {
+                        const route = data.routes[0];
+                        distanciaFinalKm = route.distance / 1000; // Convertimos de metros a kilómetros reales
+                        
+                        // Decodificamos el trayecto geográfico
+                        const geojsonCoords = route.geometry.coordinates;
+                        rutaCoordenadas = geojsonCoords.map(c => [c[1], c[0]]); // Invertimos lng/lat a lat/lng para Leaflet
+                    }
+                }
+            } catch (err) {
+                console.warn("Fallo temporal en el servidor OSRM, usando estimación lineal.", err);
+            }
+
+            // Pintar la línea vial real sobre el mapa
+            routeLine.setLatLngs(rutaCoordenadas);
+
+            // 2. Lógica de Tarifa Mínima e Integración con Servidor Local Flask
+            let tasaDolar = 45.00; // Tasa por defecto
+            try {
+                const configRes = await fetch('/admin/data');
+                if (configRes.ok) {
+                    const dataConfig = await configRes.json();
+                    tasaDolar = dataConfig.tasa_actual || 45.00;
+                }
+            } catch (e) {
+                console.log("No se pudo leer la tasa en vivo, usando tasa por defecto.");
+            }
+
+            // Tarifa en dólares: Mínimo 0.50$ si la distancia es < 2km. 
+            // Si es mayor, cobramos $0.50 base más $0.25 por kilómetro adicional.
+            let precioUsd = 0.50;
+            if (distanciaFinalKm >= 2.00) {
+                precioUsd = 0.50 + ((distanciaFinalKm - 2.00) * 0.25);
+            }
+
+            const precioBs = precioUsd * tasaDolar;
+
+            // Renderizar resultados en la interfaz táctil
+            document.getElementById('distancia-texto').innerText = `${distanciaFinalKm.toFixed(2)} km`;
             document.getElementById('precio-texto').innerText = `${precioBs.toFixed(2)} Bs.`;
-
-            // Actualizar línea visual en el mapa
-            routeLine.setLatLngs([posA, posB]);
         }
 
-        // Ejecutar cálculo al arrastrar el marcador de destino
-        destMarker.on('drag', actualizarMetricas);
+        // Trazado veloz en línea recta al arrastrar para garantizar fluidez visual
+        const trazarLineaRapida = () => {
+            routeLine.setLatLngs([originMarker.getLatLng(), destMarker.getLatLng()]);
+        };
 
-        // Al presionar confirmar, mandamos los datos directamente de vuelta a Telegram
+        destMarker.on('drag', trazarLineaRapida);
+        originMarker.on('drag', trazarLineaRapida);
+
+        // Llamar al ruteador oficial al soltar los marcadores
+        destMarker.on('dragend', actualizarMetricas);
+        originMarker.on('dragend', actualizarMetricas);
+
+        // Al presionar confirmar, empaquetamos el JSON y lo devolvemos con seguridad a Telegram
         document.getElementById('btn-confirmar').addEventListener('click', () => {
+            const posA = originMarker.getLatLng();
             const posB = destMarker.getLatLng();
             const distancia = parseFloat(document.getElementById('distancia-texto').innerText);
             
             const payload = {
                 dest_lat: posB.lat,
                 dest_lon: posB.lng,
+                orig_lat: posA.lat,
+                orig_lon: posA.lng,
                 distancia_km: distancia
             };
 
-            // El SDK de Telegram WebApp envía este JSON de vuelta al bot
+            // Envía la información al bot y cierra la WebApp
             tg.sendData(JSON.stringify(payload));
-            tg.close(); // Cierra la WebApp de forma limpia
+            tg.close();
         });
-
-        // Carga inicial
-        actualizarMetricas();
     </script>
 </body>
 </html>
