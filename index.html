@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RanKingGo - Centro Operativo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; background-color: #020617; color: #f1f5f9; font-family: system-ui, -apple-system, sans-serif; overflow: hidden; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .pantalla-activa { display: flex !important; }
+        .pantalla-oculta { display: none !important; }
+        #map, #map-conductor { height: 100%; width: 100%; position: absolute; inset: 0; z-index: 0; }
+        
+        /* FILTRO AVANZADO: Transforma el mapa base en Azul Marino de alto contraste con vías doradas/naranjas */
+        .leaflet-tile-container img {
+            filter: hue-rotate(200deg) invert(100%) contrast(140%) saturate(180%) brightness(95%) sepia(10%) !important;
+        }
+        .leaflet-container { background: #0b1329 !important; }
+    </style>
+</head>
+<body class="flex flex-col h-screen select-none bg-slate-950">
+
+    <div class="p-4 bg-slate-900 border-b border-slate-800 flex items-center justify-between shadow-lg shrink-0 z-50">
+        <div class="flex items-center gap-2">
+            <div class="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-black font-black text-xl shadow-md">R</div>
+            <div>
+                <h1 class="font-black text-sm tracking-wider text-amber-500 uppercase">RanKingGo</h1>
+                <p id="app-status-subtitle" class="text-[10px] text-slate-400 font-semibold uppercase">Cargando Sistema...</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-1.5 bg-slate-800 px-2.5 py-1 rounded-full border border-slate-700">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span id="user-display-name" class="text-[10px] font-bold text-slate-300">Telegram User</span>
+        </div>
+    </div>
+
+    <div class="grow relative overflow-hidden" id="app-container">
+
+        <div id="lobby-1-registro" class="pantalla-spa pantalla-oculta absolute inset-0 z-40 bg-slate-950 flex-col p-6 overflow-y-auto no-scrollbar">
+            <h2 class="text-xl font-bold text-slate-100 mb-2">Registro de Identidad</h2>
+            <p class="text-xs text-slate-400 mb-6">Vinculando automáticamente tu ID seguro de Telegram.</p>
+            <form id="reg-form" class="space-y-4" onsubmit="event.preventDefault();">
+                <div>
+                    <label class="text-[10px] uppercase font-bold text-slate-500 block mb-1">Tu ID Unico de Enlace</label>
+                    <input type="text" id="reg-telegram-id" readonly class="w-full bg-slate-900/50 border border-slate-800 rounded-xl px-4 py-3 text-amber-500 font-mono text-sm focus:outline-none">
+                </div>
+                <div>
+                    <label class="text-[10px] uppercase font-bold text-slate-400 block mb-1">Nombre Completo</label>
+                    <input type="text" id="reg-nombre" placeholder="Ej. Juan Pérez" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 focus:border-amber-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="text-[10px] uppercase font-bold text-slate-400 block mb-1">Teléfono Móvil</label>
+                    <input type="tel" id="reg-telefono" placeholder="Ej. 04121234567" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 focus:border-amber-500 focus:outline-none">
+                </div>
+                <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 mt-2">
+                    <h3 class="text-xs font-bold text-amber-500 mb-1">Descargo de Responsabilidad</h3>
+                    <p class="text-[10px] text-slate-400 leading-relaxed">RanKingGo opera como un núcleo de enlace digital descentralizado. Al presionar registrar, declaras tu identidad correcta.</p>
+                </div>
+            </form>
+            <button onclick="registrarUsuarioNuevo()" class="w-full bg-amber-500 text-black font-black p-4 rounded-xl mt-6 active:scale-95 transition shadow-lg shadow-amber-500/10">Establecer Credenciales</button>
+        </div>
+
+        <div id="lobby-2-seleccion" class="pantalla-spa pantalla-oculta absolute inset-0 z-40 bg-slate-950 flex-col justify-center items-center p-6">
+            <div class="w-20 h-20 bg-amber-500 rounded-2xl flex items-center justify-center text-4xl mb-6 shadow-xl shadow-amber-500/10 animate-pulse">🏍️</div>
+            <h2 class="text-2xl font-black text-slate-100 text-center mb-1">RanKingGo Urbano</h2>
+            <p class="text-xs text-slate-400 text-center mb-8 font-medium">Selecciona tu rol operativo para iniciar en el mapa</p>
+            <div class="w-full space-y-4 max-w-xs">
+                <button onclick="navegarA('lobby-3-mapa', 'Solicitar Viaje')" class="w-full bg-amber-500 text-black font-black p-4 rounded-2xl active:scale-95 transition shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 text-sm uppercase tracking-wider"><i data-lucide="navigation" class="w-4 h-4"></i> Pedir Moto</button>
+                <button onclick="entrarComoConductor()" class="w-full bg-slate-900 border border-slate-800 text-slate-200 font-bold p-4 rounded-2xl active:scale-95 transition flex items-center justify-center gap-2 text-sm uppercase tracking-wider"><i data-lucide="shield-check" class="w-4 h-4"></i> Consola Conductor</button>
+            </div>
+            <button onclick="borrarRegistroPrueba()" class="text-[10px] text-slate-600 underline mt-12">Simular Cierre de Sesión (Pruebas)</button>
+        </div>
+
+        <div id="lobby-3-mapa" class="pantalla-spa pantalla-oculta absolute inset-0 z-20 flex-col justify-end">
+            <div id="map"></div>
+            <button onclick="navegarA('lobby-2-seleccion', 'Portal Operativo')" class="absolute top-4 left-4 z-10 bg-slate-900/90 text-slate-200 px-3 py-2 rounded-xl text-xs font-bold shadow-lg border border-slate-700 backdrop-blur-sm flex items-center gap-1">⬅ Volver</button>
+            
+            <div class="relative bg-slate-950 border-t border-slate-800 p-4 rounded-t-3xl z-10 space-y-4 shadow-2xl">
+                <div class="grid grid-cols-2 gap-2 bg-slate-900 p-3 rounded-2xl border border-slate-800">
+                    <div>
+                        <p class="text-slate-500 text-[9px] uppercase font-bold tracking-wider">Distancia Calculada</p>
+                        <p id="distancia-texto" class="text-amber-500 font-black text-base">Midiendo...</p>
+                    </div>
+                    <div class="border-l border-slate-800 pl-3">
+                        <p class="text-slate-500 text-[9px] uppercase font-bold tracking-wider">Tarifa en Bolívares</p>
+                        <p id="precio-texto" class="text-emerald-400 font-black text-base">Midiendo...</p>
+                    </div>
+                </div>
+                <button onclick="navegarA('lobby-5-pago', 'Configurar Viaje')" class="w-full bg-amber-500 text-black font-black py-4 rounded-2xl active:scale-95 transition text-center text-sm uppercase tracking-wider">Confirmar Ubicación</button>
+            </div>
+        </div>
+
+        <div id="lobby-4-conductor" class="pantalla-spa pantalla-oculta absolute inset-0 z-40 bg-slate-950 flex-col p-5 overflow-y-auto no-scrollbar">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h2 class="text-lg font-black text-slate-100">Consola M-Vía</h2>
+                    <p class="text-[10px] text-slate-400 font-mono" id="cond-id-display">ID: 0</p>
+                </div>
+                <span class="bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full text-[10px] font-black border border-emerald-500/20 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> RADAR ACTIVO</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <div class="bg-gradient-to-br from-slate-900 to-slate-950 p-4 rounded-2xl border border-slate-800 shadow-md">
+                    <p class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Billetera Acumulada</p>
+                    <p id="wallet-acumulado" class="text-xl font-black text-emerald-400 mt-1">0.00 Bs.</p>
+                </div>
+                <div class="bg-gradient-to-br from-slate-900 to-slate-950 p-4 rounded-2xl border border-slate-800 shadow-md flex flex-col justify-between">
+                    <div>
+                        <p class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Pote de Aceite (3M)</p>
+                        <p id="wallet-pote" class="text-base font-black text-amber-500 mt-0.5">0.00 Bs.</p>
+                    </div>
+                    <button id="btn-retirar-aceite" disabled onclick="retirarPoteAceite()" class="w-full mt-2 bg-slate-800 text-slate-500 text-[9px] font-bold py-1 px-2 rounded-lg border border-slate-700 uppercase transition disabled:opacity-50">Retirar Aceite</button>
+                </div>
+            </div>
+
+            <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-3 mb-4 flex items-start gap-2.5">
+                <i data-lucide="clock" class="w-4 h-4 text-amber-500 shrink-0 mt-0.5"></i>
+                <div class="text-[11px] leading-relaxed text-slate-400">
+                    <span class="font-bold text-slate-200">Corte Informativo de Retenciones:</span> Las cuentas se procesan de forma automatizada 2 veces al día a las <span class="text-amber-400 font-bold">12:00 PM</span> y a las <span class="text-amber-400 font-bold">6:00 PM</span>. Asegura saldo positivo en efectivo.
+                </div>
+            </div>
+
+            <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 flex flex-col items-center justify-center grow min-h-[160px] text-center relative overflow-hidden" id="box-radar-conductor">
+                <div id="radar-searching" class="flex flex-col items-center">
+                    <i data-lucide="radar" class="w-8 h-8 text-amber-500 animate-spin mb-2"></i>
+                    <p class="text-slate-300 font-bold text-xs">Monitoreando Canales...</p>
+                    <p class="text-slate-500 text-[10px] mt-1 max-w-[200px]">Esperando que un pasajero cercano fije un destino en el perímetro.</p>
+                    <button onclick="simularViajeEntrante()" class="mt-4 text-[10px] bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-slate-400 font-bold">Simular Alerta de Pasajero</button>
+                </div>
+                
+                <div id="radar-alert" class="hidden absolute inset-0 z-10 bg-slate-900 flex-col p-3">
+                    <div class="flex justify-between items-center bg-slate-950 p-2 rounded-xl border border-slate-800 mb-2">
+                        <span class="text-[10px] font-black text-amber-500 flex items-center gap-1"><i data-lucide="user" class="w-3 h-3"></i> ¡PASAJERO DETECTADO!</span>
+                        <span id="alert-monto" class="text-xs font-black text-emerald-400">0.00 Bs</span>
+                    </div>
+                    <div class="grow relative rounded-xl overflow-hidden border border-slate-800 bg-slate-950 mb-2">
+                        <div id="map-conductor"></div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 shrink-0">
+                        <button onclick="rechazarViajeConductor()" class="bg-slate-950 border border-slate-800 text-slate-400 font-bold p-2.5 rounded-xl text-xs uppercase">Ignorar</button>
+                        <button onclick="aceptarViajeConductor()" class="bg-emerald-500 text-black font-black p-2.5 rounded-xl text-xs uppercase shadow-lg shadow-emerald-500/10">Aceptar Carrera</button>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="navegarA('lobby-2-seleccion', 'Portal Operativo')" class="mt-4 bg-slate-900 text-slate-400 font-bold p-3 rounded-xl text-xs uppercase tracking-wider text-center border border-slate-800/60">⬅ Salir de Consola</button>
+        </div>
+
+        <div id="lobby-5-pago" class="pantalla-spa pantalla-oculta absolute inset-0 z-40 bg-slate-950 flex-col p-6">
+            <div class="flex items-center gap-2 mb-6">
+                <button onclick="navegarA('lobby-3-mapa', 'Solicitar Viaje')" class="p-2 bg-slate-900 rounded-lg text-slate-300"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+                <h2 class="text-xl font-bold text-slate-100">Parámetros de Ruta</h2>
+            </div>
+            
+            <p class="text-xs text-slate-400 uppercase font-bold mb-2">Preferencia de Velocidad</p>
+            <div class="grid grid-cols-2 gap-2 mb-6">
+                <button id="btn-vel-lento" onclick="cambiarVelocidad('lento')" class="bg-amber-500 text-black border border-amber-500 p-3 rounded-xl text-sm font-black transition">🐢 Tranquilo</button>
+                <button id="btn-vel-rapido" onclick="cambiarVelocidad('rapido')" class="bg-slate-900 border border-slate-800 p-3 rounded-xl text-sm font-bold text-slate-400 transition">⚡ Rápido</button>
+            </div>
+
+            <p class="text-xs text-slate-400 uppercase font-bold mb-2">Canal de Liquidación</p>
+            <div class="space-y-3">
+                <button onclick="navegarA('lobby-6-pagomovil', 'Pago Móvil')" class="w-full bg-slate-900 border border-slate-800 p-4 rounded-xl text-left font-bold text-slate-200 active:scale-95 transition flex justify-between items-center"><span>📱 Pago Móvil Interbancario</span> <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500"></i></button>
+                <button onclick="navegarA('lobby-7-pagosms', 'Pago SMS')" class="w-full bg-slate-900 border border-slate-800 p-4 rounded-xl text-left font-bold text-slate-200 active:scale-95 transition flex justify-between items-center"><span>💬 Estructura de Mensajería SMS</span> <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500"></i></button>
+                <button onclick="navegarA('lobby-8-efectivo', 'Efectivo')" class="w-full bg-emerald-950/30 border border-emerald-900/50 p-4 rounded-xl text-left font-bold text-emerald-400 active:scale-95 transition flex justify-between items-center"><span>💵 Entrega de Efectivo Físico</span> <i data-lucide="banknote" class="w-4 h-4 text-emerald-500"></i></button>
+            </div>
+        </div>
+
+        <div id="lobby-6-pagomovil" class="pantalla-spa pantalla-oculta absolute inset-0 z-40 bg-slate-950 flex-col p-6">
+            <div class="flex items-center gap-2 mb-6">
+                <button onclick="navegarA('lobby-5-pago', 'Parámetros')" class="p-2 bg-slate-900 rounded-lg text-slate-300"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+                <h2 class="text-xl font-bold text-slate-100">Datos Pago Móvil</h2>
+            </div>
+            <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 mb-6 text-sm text-slate-300 space-y-2">
+                <div class="flex justify-between"><span class="text-slate-500">Banco:</span><span class="font-bold text-slate-100 text-right">Venezuela (0102)</span></div>
+                <div class="flex justify-between"><span class="text-slate-500">Teléfono Enlace:</span><span class="font-bold text-slate-100 text-right">0426-4211835</span></div>
+                <div class="flex justify-between"><span class="text-slate-500">RIF / Cédula:</span><span class="font-bold text-slate-100 text-right">V-25517007</span></div>
+                <div class="flex justify-between border-t border-slate-800 pt-2 mt-2"><span class="text-amber-500 font-bold">Total Tasado:</span><span id="pm-monto-texto" class="font-black text-emerald-400 text-lg">0.00 Bs.</span></div>
+            </div>
+            <input type="tel" id="pm-ref" maxlength="4" placeholder="Últimos 4 dígitos de Referencia" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-4 text-center font-black text-xl tracking-widest text-slate-100 focus:border-amber-500 focus:outline-none mb-6">
+            <button onclick="procesarSolicitudViajeCompleta()" class="w-full bg-amber-500 text-black font-black p-4 rounded-xl active:scale-95 transition">Confirmar y Transmitir</button>
+        </div>
+
+        <div id="lobby-7-pagosms" class="pantalla-spa pantalla-oculta absolute inset-0 z-40 bg-slate-950 flex-col p-6">
+            <div class="flex items-center gap-2 mb-6">
+                <button onclick="navegarA('lobby-5-pago', 'Parámetros')" class="p-2 bg-slate-900 rounded-lg text-slate-300"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+                <h2 class="text-xl font-bold text-slate-100">Comando SMS</h2>
+            </div>
+            <p class="text-xs text-slate-400 mb-3">Sintaxis para envío directo desde redes móviles:</p>
+            <div id="sms-estructura-texto" class="bg-slate-900 p-4 rounded-xl border border-slate-800 mb-6 font-mono text-xs text-amber-400 select-all break-all leading-relaxed">
+                Pagar 0102 04264211835 25517007 0,00
+            </div>
+            <input type="tel" id="sms-ref" maxlength="4" placeholder="Últimos 4 dígitos de Referencia" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-4 text-center font-black text-xl tracking-widest text-slate-100 focus:border-amber-500 focus:outline-none mb-6">
+            <button onclick="procesarSolicitudViajeCompleta()" class="w-full bg-amber-500 text-black font-black p-4 rounded-xl active:scale-95 transition">Validar Transacción</button>
+        </div>
+
+        <div id="lobby-8-efectivo" class="pantalla-spa pantalla-oculta absolute inset-0 z-40 bg-slate-950 flex-col p-6">
+            <div class="flex items-center gap-2 mb-6">
+                <button onclick="navegarA('lobby-5-pago', 'Parámetros')" class="p-2 bg-slate-900 rounded-lg text-slate-300"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+                <h2 class="text-xl font-bold text-slate-100">Físico Billete</h2>
+            </div>
+            <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 text-center mb-6">
+                <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Carga al Conductor por Uso</p>
+                <p id="efectivo-comision-texto" class="text-2xl font-black text-rose-400 mt-1">0.00 Bs.</p>
+                <p class="text-[10px] text-slate-400 mt-2 leading-relaxed">Este valor representa la tasa operativa que se descontará de la Wallet del conductor en el siguiente corte.</p>
+            </div>
+            <button onclick="procesarSolicitudViajeCompleta()" class="w-full bg-amber-500 text-black font-black p-4 rounded-xl active:scale-95 transition">Solicitar en Efectivo</button>
+        </div>
+
+        <div id="lobby-9-espera" class="pantalla-spa pantalla-oculta absolute inset-0 z-40 bg-slate-950 flex-col items-center justify-center p-6 text-center">
+            <div id="espera-buscando-bloque" class="flex flex-col items-center justify-center grow">
+                <div class="w-20 h-20 rounded-full bg-amber-500/10 flex items-center justify-center animate-pulse mb-4 border border-amber-500/20">
+                    <i data-lucide="broadcast" class="w-10 h-10 text-amber-500"></i>
+                </div>
+                <h2 class="text-xl font-black text-slate-100">Asignando Unidad</h2>
+                <p class="text-slate-400 text-xs mt-1 max-w-[220px]">Buscando conductores activos en el mapa con combustible disponible...</p>
+                <button onclick="forzarAceptacionDesdePasajero()" class="mt-6 text-[10px] text-slate-500 border border-slate-800 rounded-lg px-2.5 py-1.5 bg-slate-900/40">Simular que Conductor Acepta</button>
+            </div>
+            
+            <div class="mt-auto w-full bg-slate-900 p-5 rounded-2xl border border-slate-800 hidden shadow-xl" id="bloque-rating">
+                <p class="font-black text-slate-200 text-sm mb-1">📍 ¡Destino Validado!</p>
+                <p class="text-[11px] text-slate-400 mb-4">El GPS de la unidad cerró la ruta al cruzar el umbral de 5 metros.</p>
+                <div class="flex justify-center gap-3 mb-4">
+                    <i data-lucide="star" id="star-1" onclick="marcarEstrellas(1)" class="w-7 h-7 text-slate-700 cursor-pointer transition-colors"></i>
+                    <i data-lucide="star" id="star-2" onclick="marcarEstrellas(2)" class="w-7 h-7 text-slate-700 cursor-pointer transition-colors"></i>
+                    <i data-lucide="star" id="star-3" onclick="marcarEstrellas(3)" class="w-7 h-7 text-slate-700 cursor-pointer transition-colors"></i>
+                    <i data-lucide="star" id="star-4" onclick="marcarEstrellas(4)" class="w-7 h-7 text-slate-700 cursor-pointer transition-colors"></i>
+                    <i data-lucide="star" id="star-5" onclick="marcarEstrellas(5)" class="w-7 h-7 text-slate-700 cursor-pointer transition-colors"></i>
+                </div>
+                <button class="w-full bg-amber-500 text-black font-black py-3 rounded-xl text-xs uppercase tracking-wider active:scale-95 transition" onclick="guardarRatingFinalYReiniciar()">Terminar Proceso</button>
+            </div>
+        </div>
+
+        <div id="lobby-10-viaje" class="pantalla-spa pantalla-oculta absolute inset-0 z-40 bg-slate-950 flex-col p-6">
+            <h2 class="text-xl font-black text-emerald-400 mb-1">Viaje en Curso 🏍️</h2>
+            <p class="text-slate-400 text-xs mb-4">Ubicaciones sincronizadas en tiempo real en la red.</p>
+            <div class="grow bg-slate-900 rounded-2xl border border-slate-800 p-4 flex flex-col justify-center items-center shadow-inner text-center">
+                <i data-lucide="navigation" class="w-12 h-12 text-emerald-500 mb-3 animate-bounce"></i>
+                <p class="font-bold text-slate-200 text-sm">Monitoreando Radio de Destino (5m)</p>
+                <p id="distancia-restante-live" class="text-xs text-amber-500 mt-3 bg-slate-950 px-3 py-1.5 rounded-full border border-slate-800 font-mono tracking-wider">Calculando coordenadas por satélite...</p>
+            </div>
+            <button onclick="ejecutarArriboDestinoAutomatico()" class="mt-4 text-[11px] text-slate-500 underline text-center">Forzar Llegada (Simular cruce de radio de 5m)</button>
+        </div>
+
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // Inicialización del Entorno de Telegram WebApp
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+        lucide.createIcons();
+
+        // Variables Globales de Control de Usuario
+        let userTelegramId = tg.initDataUnsafe?.user?.id || 99887766; 
+        let userTelegramName = tg.initDataUnsafe?.user?.first_name || "Pasajero Local";
+
+        // Parámetros de Ubicación por Defecto (Eje Charallave - Central)
+        let latDefault = 10.2157;
+        let lonDefault = -66.8608;
+
+        // Instancias de Mapas y Marcadores (Leaflet)
+        let mapPasajero = null, mapConductor = null;
+        let pOriginMarker, pDestMarker, pRouteLine;
+        let cOriginMarker, cDestMarker, cRouteLine;
+
+        // Estados Financieros y Métricas de Ruta
+        let distanciaFinalMetros = 0;
+        let precioBolivaresCalculado = 0;
+        let velocidadPreferida = 'lento';
+        let gpsTrackerWatchId = null;
+
+        // Configuración de Tarifas y Presupuesto Basado en Datos Técnicos (1$ = 600.00 Bs.)
+        const TASA_CAMBIO = 600.00; // 1 USD = 600 Bs.
+        const TARIFA_MINIMA_BS = 300.00; // Tarifa mínima es medio dólar
+        const DISTANCIA_MINIMA_METROS = 2000; // Hasta 2 kilómetros cubre la tarifa mínima
+        const PRECIO_POR_METRO_EXTRA = 150.00 / 1000; // 1$ son 4km -> 0.25$ por km -> 150 Bs por km -> 0.15 Bs por metro
+        
+        // Variables de Desgaste Técnico y Comisiones
+        const CONSUMO_GASOLINA_L_POR_METRO = 0.040 / 1000; // 0.040 litros por kilómetro
+        const COSTO_LITRO_GASOLINA_BS = 300.00; // 2 litros de gasolina cuestan 1$ (600 Bs) -> 1 Litro = 300 Bs.
+        const RETENCION_PLATFORMA_FACTOR = 0.09; // 9% de comisión para la app
+        const PREMIO_POOL_FACTOR = 0.03; // 3% guardado como premio
+
+        // Ciclo de Vida: Control de Sesión / Auto-Login por Token de Telegram
+        window.addEventListener('load', () => {
+            document.getElementById('user-display-name').innerText = userTelegramName;
+            document.getElementById('reg-telegram-id').value = userTelegramId;
+
+            // Verificar si el usuario ya completó el registro previamente en este dispositivo
+            const registroPrevio = localStorage.getItem('rankinggo_registered_v2');
+            if (registroPrevio === 'true') {
+                navegarA('lobby-2-seleccion', 'Portal Operativo');
+            } else {
+                navegarA('lobby-1-registro', 'Registro de Identidad');
+            }
+            
+            // Forzar actualización inicial de balances en la billetera local de pruebas
+            actualizarInterfazBilletera();
+            solicitarUbicacionGpsDispositivo();
+        });
+
+        function registrarUsuarioNuevo() {
+            const nombre = document.getElementById('reg-nombre').value.trim();
+            const tlf = document.getElementById('reg-telefono').value.trim();
+
+            if (!nombre || !tlf) {
+                alert('Por favor ingresa tu nombre y número telefónico para continuar.');
+                return;
+            }
+
+            // Guardar credenciales de forma local asociada al token de Telegram
+            localStorage.setItem('rankinggo_registered_v2', 'true');
+            localStorage.setItem('rankinggo_user_name', nombre);
+            localStorage.setItem('rankinggo_user_phone', tlf);
+            
+            navegarA('lobby-2-seleccion', 'Portal Operativo');
+        }
+
+        function borrarRegistroPrueba() {
+            localStorage.removeItem('rankinggo_registered_v2');
+            location.reload();
+        }
+
+        function solicitarUbicacionGpsDispositivo() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(pos => {
+                    latDefault = pos.coords.latitude;
+                    lonDefault = pos.coords.longitude;
+                    if (pOriginMarker && mapPasajero) {
+                        pOriginMarker.setLatLng([latDefault, lonDefault]);
+                        mapPasajero.setView([latDefault, lonDefault], 15);
+                        recalcularRutaMetersOSRM();
+                    }
+                }, null, { enableHighAccuracy: true });
+            }
+        }
+
+        // Sistema de Navegación Multicapa SPA
+        function navegarA(idPantalla, tituloSub = "RanKingGo") {
+            document.querySelectorAll('.pantalla-spa').forEach(p => {
+                p.classList.remove('pantalla-activa'); p.classList.add('pantalla-oculta');
+            });
+            const destino = document.getElementById(idPantalla);
+            if(destino) {
+                destino.classList.remove('pantalla-oculta'); destino.classList.add('pantalla-activa');
+            }
+            document.getElementById('app-status-subtitle').innerText = tituloSub;
+
+            if(idPantalla === 'lobby-3-mapa') {
+                setTimeout(() => { inicializarMapaPasajero(); mapPasajero.invalidateSize(); }, 200);
+            }
+            if(idPantalla !== 'lobby-10-viaje' && gpsTrackerWatchId) {
+                navigator.geolocation.clearWatch(gpsTrackerWatchId);
+                gpsTrackerWatchId = null;
+            }
+        }
+
+        // Inicialización y Configuración del Mapa del Pasajero (Solo Modo Claro Optimizado)
+        function inicializarMapaPasajero() {
+            if (mapPasajero) return;
+            mapPasajero = L.map('map', { zoomControl: false }).setView([latDefault, lonDefault], 15);
+            
+            // Cargamos mapa base estándar que se intercepta con el filtro CSS Azul Marino/Dorado
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(mapPasajero);
+
+            pOriginMarker = L.marker([latDefault, lonDefault], { draggable: true, icon: crearIconoPuntero('A', 'bg-blue-500 text-white') }).addTo(mapPasajero);
+            pDestMarker = L.marker([latDefault + 0.007, lonDefault + 0.007], { draggable: true, icon: crearIconoPuntero('B', 'bg-amber-500 text-black') }).addTo(mapPasajero);
+            pRouteLine = L.polyline([], { color: '#f59e0b', weight: 5, opacity: 0.9 }).addTo(mapPasajero);
+
+            pOriginMarker.on('dragend', recalcularRutaMetersOSRM);
+            pDestMarker.on('dragend', recalcularRutaMetersOSRM);
+            recalcularRutaMetersOSRM();
+        }
+
+        function crearIconoPuntero(letra, clasesEstilo) {
+            return L.divIcon({
+                className: 'custom-puntero',
+                html: `<div class='w-7 h-7 ${clasesEstilo} border-2 border-slate-900 rounded-full flex items-center justify-center font-black text-xs shadow-2xl'>${letra}</div>`,
+                iconSize: [28, 28]
+            });
+        }
+
+        // Conector OSRM para Cálculo Preciso de Calles y Rutas por Metro
+        async function recalcularRutaMetersOSRM() {
+            const org = pOriginMarker.getLatLng();
+            const dst = pDestMarker.getLatLng();
+
+            try {
+                const response = await fetch(`https://router.project-osrm.org/route/v1/driving/${org.lng},${org.lat};${dst.lng},${dst.lat}?overview=full&geometries=geojson`);
+                const data = await response.json();
+                
+                if(data.routes && data.routes.length > 0) {
+                    const ruta = data.routes[0];
+                    distanciaFinalMetros = ruta.distance; 
+                    
+                    // FÓRMULA FINANCIERA EXACTA POR METROS
+                    if (distanciaFinalMetros <= DISTANCIA_MINIMA_METROS) {
+                        precioBolivaresCalculado = TARIFA_MINIMA_BS;
+                    } else {
+                        let metrosExcedentes = distanciaFinalMetros - DISTANCIA_MINIMA_METROS;
+                        precioBolivaresCalculado = TARIFA_MINIMA_BS + (metrosExcedentes * PRECIO_POR_METRO_EXTRA);
+                    }
+
+                    const arrayCoordenadas = ruta.geometry.coordinates.map(c => [c[1], c[0]]);
+                    pRouteLine.setLatLngs(arrayCoordenadas);
+                    inyectarValoresPantalla();
+                }
+            } catch (err) {
+                // Fallback de contingencia lineal en caso de corte de red
+                let distLinealMetros = org.distanceTo(dst);
+                distanciaFinalMetros = distLinealMetros * 1.25; // Factor de corrección vial estimado
+                precioBolivaresCalculado = distanciaFinalMetros <= DISTANCIA_MINIMA_METROS ? TARIFA_MINIMA_BS : TARIFA_MINIMA_BS + ((distanciaFinalMetros - DISTANCIA_MINIMA_METROS) * PRECIO_POR_METRO_EXTRA);
+                pRouteLine.setLatLngs([org, dst]);
+                inyectarValoresPantalla();
+            }
+        }
+
+        function inyectarValoresPantalla() {
+            let km = distanciaFinalMetros / 1000;
+            document.getElementById('distancia-texto').innerText = `${km.toFixed(2)} km`;
+            document.getElementById('precio-texto').innerText = `${precioBolivaresCalculado.toFixed(2)} Bs.`;
+            
+            // Actualizar paneles de pago alternos
+            document.getElementById('pm-monto-texto').innerText = `${precioBolivaresCalculado.toFixed(2)} Bs.`;
+            document.getElementById('sms-estructura-texto').innerText = `Pagar 0102 04264211835 25517007 ${precioBolivaresCalculado.toFixed(2).replace('.',',')}`;
+            
+            // Comisión del 9% que se despliega en la sección de efectivo
+            let comisionAppEfectivo = precioBolivaresCalculado * RETENCION_PLATFORMA_FACTOR;
+            document.getElementById('efectivo-comision-texto').innerText = `${comisionAppEfectivo.toFixed(2)} Bs.`;
+        }
+
+        // Selección Interactiva de Velocidad
+        function cambiarVelocidad(tipo) {
+            velocidadPreferida = tipo;
+            const bLento = document.getElementById('btn-vel-lento');
+            const bRapido = document.getElementById('btn-vel-rapido');
+            if(tipo === 'lento') {
+                bLento.className = "bg-amber-500 text-black border border-amber-500 p-3 rounded-xl text-sm font-black transition";
+                bRapido.className = "bg-slate-900 border border-slate-800 p-3 rounded-xl text-sm font-bold text-slate-400 transition";
+            } else {
+                bLento.className = "bg-slate-900 border border-slate-800 p-3 rounded-xl text-sm font-bold text-slate-400 transition";
+                bRapido.className = "bg-amber-500 text-black border border-amber-500 p-3 rounded-xl text-sm font-black transition";
+            }
+        }
+
+        // Lógica de Consola del Conductor, Monederos y Retención de Aceite
+        function entrarComoConductor() {
+            document.getElementById('cond-id-display').innerText = `ID OPERATIVO: M-${userTelegramId.toString().slice(-4)}`;
+            navegarA('lobby-4-conductor', 'Consola Conductor');
+        }
+
+        function actualizarInterfazBilletera() {
+            let balance = parseFloat(localStorage.getItem('wallet_acumulado') || '0');
+            let pote = parseFloat(localStorage.getItem('wallet_pote') || '0');
+
+            document.getElementById('wallet-acumulado').innerText = `${balance.toFixed(2)} Bs.`;
+            document.getElementById('wallet-pote').innerText = `${pote.toFixed(2)} Bs.`;
+
+            // El botón de retirar el pote se habilita al acumular 10$ (6000.00 Bs.)
+            const btnRetiro = document.getElementById('btn-retirar-aceite');
+            if (pote >= 6000.00) {
+                btnRetiro.disabled = false;
+                btnRetiro.className = "w-full mt-2 bg-amber-500 text-black text-[9px] font-black py-1 px-2 rounded-lg cursor-pointer uppercase transition";
+            } else {
+                btnRetiro.disabled = true;
+                btnRetiro.className = "w-full mt-2 bg-slate-800 text-slate-500 text-[9px] font-bold py-1 px-2 rounded-lg border border-slate-700 uppercase transition disabled:opacity-50";
+            }
+        }
+
+        function retirarPoteAceite() {
+            let poteActual = parseFloat(localStorage.getItem('wallet_pote') || '0');
+            alert(`¡Retiro Procesado con Éxito!\nSe han transferido ${poteActual.toFixed(2)} Bs. (Fondo de Aceite cumplido) a tu cuenta principal.`);
+            localStorage.setItem('wallet_pote', '0');
+            actualizarInterfazBilletera();
+        }
+
+        // Flujo del Conductor: Recibir Solicitud Compartiendo Ubicación Real del Pasajero
+        function simularViajeEntrante() {
+            document.getElementById('alert-monto').innerText = `${precioBolivaresCalculado.toFixed(2)} Bs.`;
+            document.getElementById('radar-alert').classList.remove('hidden');
+
+            // Inicializar mapa interno de la alerta para el Conductor
+            setTimeout(() => {
+                if (!mapConductor) {
+                    mapConductor = L.map('map-conductor', { zoomControl: false });
+                    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(mapConductor);
+                    cOriginMarker = L.marker([10.21, -66.86], { icon: crearIconoPuntero('A', 'bg-blue-500 text-white') }).addTo(mapConductor);
+                    cDestMarker = L.marker([10.22, -66.87], { icon: crearIconoPuntero('B', 'bg-amber-500 text-black') }).addTo(mapConductor);
+                    cRouteLine = L.polyline([], { color: '#eab308', weight: 4 }).addTo(mapConductor);
+                }
+                
+                // El conductor hereda exactamente las coordenadas del viaje del pasajero
+                const p1 = pOriginMarker.getLatLng();
+                const p2 = pDestMarker.getLatLng();
+                cOriginMarker.setLatLng(p1);
+                cDestMarker.setLatLng(p2);
+                cRouteLine.setLatLngs(pRouteLine.getLatLngs());
+                mapConductor.fitBounds(cRouteLine.getBounds(), { padding: [15, 15] });
+            }, 150);
+        }
+
+        function rechazarViajeConductor() {
+            document.getElementById('radar-alert').classList.add('hidden');
+        }
+
+        function aceptarViajeConductor() {
+            document.getElementById('radar-alert').classList.add('hidden');
+            alert("Has aceptado la carrera. Enrutándote hacia el punto de encuentro con el pasajero.");
+            navegarA('lobby-2-seleccion', 'Portal Operativo');
+        }
+
+        // Flujo de Confirmación de Solicitud del Pasajero
+        function procesarSolicitudViajeCompleta() {
+            document.getElementById('espera-buscando-bloque').classList.remove('hidden');
+            document.getElementById('bloque-rating').classList.add('hidden');
+            navegarA('lobby-9-espera', 'Buscando Conductor');
+        }
+
+        function forzarAceptacionDesdePasajero() {
+            navegarA('lobby-10-viaje', 'Viaje en Curso');
+            activarMonitoreoGpsRadioArribo();
+        }
+
+        // Seguimiento de Posición Real y Auto-Cierre en Radio de 5 metros
+        function activarMonitoreoGpsRadioArribo() {
+            if (navigator.geolocation) {
+                gpsTrackerWatchId = navigator.geolocation.watchPosition(pos => {
+                    const uLat = pos.coords.latitude;
+                    const uLng = pos.coords.longitude;
+                    const target = pDestMarker.getLatLng();
+
+                    // Medición matemática por Haversine de la distancia al destino en metros
+                    const distanciaFaltanteMetros = calcularMetrosEntrePuntos(uLat, uLng, target.lat, target.lng);
+                    document.getElementById('distancia-restante-live').innerText = `A ${distanciaFaltanteMetros.toFixed(1)} metros del destino`;
+
+                    // Cierre automático estricto por debajo del radio de 5 metros
+                    if (distanciaFaltanteMetros <= 5) {
+                        ejecutarArriboDestinoAutomatico();
+                    }
+                }, null, { enableHighAccuracy: true, timeout: 8000 });
+            }
+        }
+
+        function calcularMetrosEntrePuntos(lat1, lon1, lat2, lon2) {
+            const R = 6371000;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+        }
+
+        function ejecutarArriboDestinoAutomatico() {
+            if (gpsTrackerWatchId) navigator.geolocation.clearWatch(gpsTrackerWatchId);
+            
+            // PROCESAR MATRIZ PRESUPUESTARIA TÉCNICA AL FINALIZAR EL VIAJE
+            // 1. Gasolina gastada en el recorrido
+            let litrosGastados = distanciaFinalMetros * CONSUMO_GASOLINA_L_POR_METRO;
+            let costoGasolinaTrip = litrosGastados * COSTO_LITRO_GASOLINA_BS;
+            
+            // 2. Retención de plataforma (9%) y Premios (3%)
+            let comisionPlataforma = precioBolivaresCalculado * RETENCION_PLATFORMA_FACTOR;
+            let comisionPremio = precioBolivaresCalculado * PREMIO_POOL_FACTOR;
+            
+            // 3. Ganancia neta final del Conductor
+            let gananciaLimpiaConductor = precioBolivaresCalculado - comisionPlataforma - comisionPremio - costoGasolinaTrip;
+            if (gananciaLimpiaConductor < 0) gananciaLimpiaConductor = 0;
+
+            // 4. Aporte diario para el pote del aceite simulado por viaje (3.33 Bs.)
+            let aporteAceite = 3.33;
+
+            // Almacenar e incrementar balances en el storage local del teléfono
+            let balanceViejo = parseFloat(localStorage.getItem('wallet_acumulado') || '0');
+            let poteViejo = parseFloat(localStorage.getItem('wallet_pote') || '0');
+
+            localStorage.setItem('wallet_acumulado', (balanceViejo + gananciaLimpiaConductor).toString());
+            localStorage.setItem('wallet_pote', (poteViejo + aporteAceite).toString());
+
+            actualizarInterfazBilletera();
+
+            // Abrir interfaz de cierre de viaje y estrellas
+            document.getElementById('espera-buscando-bloque').classList.add('hidden');
+            document.getElementById('bloque-rating').classList.remove('hidden');
+            navegarA('lobby-9-espera', 'Califica el Servicio');
+        }
+
+        // Módulo de Calificación por Estrellas
+        function marcarEstrellas(num) {
+            for(let i=1; i<=5; i++) {
+                let s = document.getElementById(`star-${i}`);
+                if(i <= num) {
+                    s.classList.replace('text-slate-700', 'text-amber-500');
+                    s.setAttribute('fill', 'currentColor');
+                } else {
+                    s.classList.replace('text-amber-500', 'text-slate-700');
+                    s.setAttribute('fill', 'none');
+                }
+            }
+        }
+
+        function guardarRatingFinalYReiniciar() {
+            alert("¡Gracias por viajar con RanKingGo! Retornando a la pantalla operativa.");
+            navegarA('lobby-2-seleccion', 'Portal Operativo');
+        }
+    </script>
+</body>
+</html>
