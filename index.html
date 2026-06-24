@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RanKingGo - Centro Operativo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; background-color: #0f172a; color: #f1f5f9; font-family: system-ui, -apple-system, sans-serif; overflow: hidden; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .pantalla-activa { display: flex !important; }
+        .pantalla-oculta { display: none !important; }
+        #map { height: 100%; width: 100%; }
+        .leaflet-container { background: #1e293b !important; }
+    </style>
+</head>
+<body class="flex flex-col h-screen select-none">
+
+    <div class="p-4 bg-slate-900 border-b border-slate-800 flex items-center justify-between shadow-lg shrink-0 z-50">
+        <div class="flex items-center gap-2">
+            <div class="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-black font-black text-xl shadow-md">R</div>
+            <div>
+                <h1 class="font-black text-sm tracking-wider text-amber-500 uppercase">RanKingGo</h1>
+                <p id="app-status-subtitle" class="text-[10px] text-slate-400 font-semibold uppercase">Cargando...</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-1.5 bg-slate-800 px-2.5 py-1 rounded-full border border-slate-700">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span id="user-display-name" class="text-[10px] font-bold text-slate-300">Conectando...</span>
+        </div>
+    </div>
+
+    <div class="grow relative overflow-hidden" id="app-container">
+
+        <div id="lobby-1-registro" class="pantalla-spa pantalla-oculta absolute inset-0 z-40 bg-slate-950 flex-col p-6 overflow-y-auto no-scrollbar">
+            <h2 class="text-xl font-bold text-slate-100 mb-6">Registro de Identidad</h2>
+            <form id="reg-form" class="space-y-4">
+                <input type="text" placeholder="Nombre Completo" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 focus:border-amber-500 focus:outline-none">
+                <input type="text" placeholder="Cédula" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 focus:border-amber-500 focus:outline-none">
+                <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 mt-2">
+                    <h3 class="text-xs font-bold text-amber-500 mb-1">Descargo Legal</h3>
+                    <p class="text-[10px] text-slate-400">RanKingGo no se hace responsable por incidentes viales. Al continuar aceptas los términos.</p>
+                </div>
+            </form>
+            <button onclick="navegarA('lobby-2-seleccion', 'Portal Operativo')" class="w-full bg-amber-500 text-black font-black p-4 rounded-xl mt-6 active:scale-95 transition">Completar Registro</button>
+        </div>
+
+        <div id="lobby-2-seleccion" class="pantalla-spa pantalla-oculta absolute inset-0 z-40 bg-slate-950 flex-col justify-center items-center p-6">
+            <div class="w-20 h-20 bg-amber-500 rounded-2xl flex items-center justify-center text-5xl mb-8 animate-bounce">🏍️</div>
+            <h2 class="text-2xl font-black text-slate-100 mb-8">¿Cómo ingresarás hoy?</h2>
+            <div class="w-full space-y-4">
+                <button onclick="navegarA('lobby-3-mapa', 'Solicitar Viaje')" class="w-full bg-amber-500 text-black font-black p-4 rounded-2xl active:scale-95 transition shadow-lg shadow-amber-500/20">Entrar como Pasajero</button>
+                <button onclick="navegarA('lobby-4-conductor', 'Consola Conductor')" class="w-full bg-slate-900 border border-slate-800 text-slate-200 font-bold p-4 rounded-2xl active:scale-95 transition">Entrar como Conductor</button>
+            </div>
+        </div>
+
+        <div id="lobby-3-mapa" class="pantalla-spa pantalla-oculta absolute inset-0 z-20 flex-col justify-end">
+            <div id="map" class="absolute inset-0 z-0"></div>
+            <button onclick="alternarMapa()" id="btn-map-toggle" class="absolute top-4 right-4 z-10 bg-slate-900 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg border border-slate-700">🗺️ Satélite</button>
+            <button onclick="navegarA('lobby-2-seleccion', 'Portal Operativo')" class="absolute top-4 left-4 z-10 bg-slate-900 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg border border-slate-700">⬅ Volver</button>
+            
+            <div class="relative bg-slate-950 border-t border-slate-800 p-4 rounded-t-3xl z-10 space-y-4">
+                <div class="flex justify-between items-center bg-slate-900 p-3 rounded-2xl border border-slate-800">
+                    <div><p class="text-slate-400 text-[9px] uppercase font-bold">Distancia</p><p id="distancia-texto" class="text-amber-500 font-black text-lg">2.50 km</p></div>
+                    <div class="w-px h-8 bg-slate-800"></div>
+                    <div><p class="text-slate-400 text-[9px] uppercase font-bold">Tarifa</p><p id="precio-texto" class="text-emerald-400 font-black text-lg">65.00 Bs.</p></div>
+                </div>
+                <button onclick="navegarA('lobby-5-pago', 'Configurar Viaje')" class="w-full bg-amber-500 text-black font-black py-4 rounded-2xl active:scale-95 transition">FIJAR DESTINO</button>
+            </div>
+        </div>
+
+        <div id="lobby-4-conductor" class="pantalla-spa pantalla-oculta absolute inset-0 z-40 bg-slate-950 flex-col p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-slate-100">Consola M-042</h2>
+                <span class="bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full text-xs font-bold border border-emerald-500/20 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> ACTIVO</span>
+            </div>
+            <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 text-center mb-4 flex flex-col items-center">
+                <i data-lucide="radar" class="w-10 h-10 text-slate-500 animate-spin mb-3"></i>
+                <p class="text-slate-400 text-sm">Buscando pasajeros cerca de tu ubicación...</p>
+            </div>
+            <button onclick="navegarA('lobby-3-mapa', 'Modo Pasajero')" class="mt-auto bg-slate-800 text-slate-200 font-bold p-4 rounded-xl border border-slate-700 active:scale-95 transition">Viajar como Pasajero</button>
+            <button onclick="navegarA('lobby-2-seleccion', 'Portal Operativo')" class="mt-3 bg-slate-900 text-slate-400 font-bold p-4 rounded-xl active:scale-95 transition">⬅ Volver al Menú</button>
+        </div>
+
+        <div id="lobby-5-pago" class="pantalla-spa pantalla-oculta absolute inset-0 z-40 bg-slate-950 flex-col p-6">
+            <div class="flex items-center gap-2 mb-6">
+                <button onclick="navegarA('lobby-3-mapa', 'Solicitar Viaje')" class="p-2 bg-slate-900 rounded-lg text-slate-300"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+                <h2 class="text-xl font-bold text-slate-100">Opciones de Viaje</h2>
+            </div>
+            
+            <p class="text-xs text-slate-400 uppercase font-bold mb-2">Preferencia de Velocidad</p>
+            <div class="grid grid-cols-2 gap-2 mb-6">
+                <button class="bg-amber-500/10 border border-amber-500 p-3 rounded-xl text-sm font-bold text-amber-500 transition">🐢 Lento</button>
+                <button class="bg-slate-900 border border-slate-800 p-3 rounded-xl text-sm font-bold text-slate-400 transition">⚡ Rápido</button>
+            </div>
+
+            <p class="text-xs text-slate-400 uppercase font-bold mb-2">Método de Pago</p>
+            <div class="space-y-3">
+                <button onclick="navegarA('lobby-6-pagomovil', 'Pago Móvil')" class="w-full bg-slate-900 border border-slate-800 p-4 rounded-xl text-left font-bold text-slate-200 active:scale-95 transition">📱 Pago Móvil (App)</button>
+                <button onclick="navegarA('lobby-7-pagosms', 'Pago SMS')" class="w-full bg-slate-900 border border-slate-800 p-4 rounded-xl text-left font-bold text-slate-200 active:scale-95 transition">💬 Pago por Mensaje</button>
+                <button onclick="navegarA('lobby-8-efectivo', 'Efectivo')" class="w-full bg-emerald-900/20 border border-emerald-800/50 p-4 rounded-xl text-left font-bold text-emerald-400 active:scale-95 transition">💵 Pago en Efectivo</button>
+            </div>
+        </div>
+
+        <div id="lobby-6-pagomovil" class="pantalla-spa pantalla-oculta absolute inset-0 z-40 bg-slate-950 flex-col p-6">
+            <div class="flex items-center gap-2 mb-6">
+                <button onclick="navegarA('lobby-5-pago', 'Opciones')" class="p-2 bg-slate-900 rounded-lg text-slate-300"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+                <h2 class="text-xl font-bold text-slate-100">Pago Móvil</h2>
+            </div>
+            <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 mb-6 text-sm text-slate-300 space-y-2">
+                <div class="flex justify-between"><span class="text-slate-500">Banco:</span><span class="font-bold text-slate-100">Venezuela (0102)</span></div>
+                <div class="flex justify-between"><span class="text-slate-500">Teléfono:</span><span class="font-bold text-slate-100">0426-4211835</span></div>
+                <div class="flex justify-between"><span class="text-slate-500">Cédula:</span><span class="font-bold text-slate-100">V-25517007</span></div>
+                <div class="flex justify-between border-t border-slate-800 pt-2 mt-2"><span class="text-amber-500 font-bold">Monto:</span><span class="font-black text-emerald-400 text-lg">65.00 Bs.</span></div>
+            </div>
+            <input type="tel" maxlength="4" placeholder="Últimos 4 dígitos de ref..." class="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-4 text-center font-black text-xl tracking-widest text-slate-100 focus:border-amber-500 focus:outline-none mb-6">
+            <button onclick="navegarA('lobby-9-espera', 'Conciliando')" class="w-full bg-amber-500 text-black font-black p-4 rounded-xl active:scale-95 transition">Confirmar Pago</button>
+        </div>
+
+        <div id="lobby-7-pagosms" class="pantalla-spa pantalla-oculta absolute inset-0 z-40 bg-slate-950 flex-col p-6">
+            <div class="flex items-center gap-2 mb-6">
+                <button onclick="navegarA('lobby-5-pago', 'Opciones')" class="p-2 bg-slate-900 rounded-lg text-slate-300"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+                <h2 class="text-xl font-bold text-slate-100">Pago SMS</h2>
+            </div>
+            <p class="text-xs text-slate-400 mb-3">Copia y envía este mensaje a tu banco:</p>
+            <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 mb-6 font-mono text-xs text-amber-400 select-all break-all">
+                Pagar 0102 04264211835 25517007 65,00
+            </div>
+            <input type="tel" maxlength="4" placeholder="Últimos 4 dígitos de ref..." class="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-4 text-center font-black text-xl tracking-widest text-slate-100 focus:border-amber-500 focus:outline-none mb-6">
+            <button onclick="navegarA('lobby-9-espera', 'Conciliando')" class="w-full bg-amber-500 text-black font-black p-4 rounded-xl active:scale-95 transition">Confirmar Pago SMS</button>
+        </div>
+
+        <div id="lobby-8-efectivo" class="pantalla-spa pantalla-oculta absolute inset-0 z-40 bg-slate-950 flex-col p-6">
+            <div class="flex items-center gap-2 mb-6">
+                <button onclick="navegarA('lobby-5-pago', 'Opciones')" class="p-2 bg-slate-900 rounded-lg text-slate-300"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+                <h2 class="text-xl font-bold text-slate-100">Efectivo</h2>
+            </div>
+            <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 text-center mb-6">
+                <p class="text-slate-400 text-xs font-bold uppercase">Deuda Sistema (Cortes 12pm/6pm)</p>
+                <p class="text-3xl font-black text-rose-500 mt-2">15.50 Bs.</p>
+                <p class="text-[10px] text-slate-500 mt-2">Retención de uso de plataforma por viajes en efectivo.</p>
+            </div>
+            <button onclick="navegarA('lobby-9-espera', 'Buscando Moto')" class="w-full bg-amber-500 text-black font-black p-4 rounded-xl active:scale-95 transition">Confirmar Viaje en Efectivo</button>
+        </div>
+
+        <div id="lobby-9-espera" class="pantalla-spa pantalla-oculta absolute inset-0 z-40 bg-slate-950 flex-col items-center justify-center p-6 text-center">
+            <div class="w-24 h-24 rounded-full bg-amber-500/10 flex items-center justify-center animate-pulse mb-6 border border-amber-500/30">
+                <i data-lucide="radar" class="w-12 h-12 text-amber-500"></i>
+            </div>
+            <h2 class="text-2xl font-black text-slate-100">Buscando Conductor</h2>
+            <p class="text-slate-400 text-sm mt-2 max-w-xs">Conciliando pago y asignando la moto más cercana en tu área...</p>
+            
+            <button onclick="navegarA('lobby-10-viaje', 'Viaje en Curso')" class="mt-8 text-xs text-slate-500 underline border border-slate-800 p-2 rounded-lg">Simular que el conductor aceptó (Demo)</button>
+
+            <div class="mt-12 w-full bg-slate-900 p-6 rounded-2xl border border-slate-800 hidden" id="bloque-rating">
+                <p class="font-bold text-slate-200 mb-4">¿Cómo estuvo tu viaje?</p>
+                <div class="flex justify-center gap-2 mb-4">
+                    <i data-lucide="star" id="star-1" onclick="setRating(1)" class="w-8 h-8 text-slate-600 cursor-pointer transition-colors"></i>
+                    <i data-lucide="star" id="star-2" onclick="setRating(2)" class="w-8 h-8 text-slate-600 cursor-pointer transition-colors"></i>
+                    <i data-lucide="star" id="star-3" onclick="setRating(3)" class="w-8 h-8 text-slate-600 cursor-pointer transition-colors"></i>
+                    <i data-lucide="star" id="star-4" onclick="setRating(4)" class="w-8 h-8 text-slate-600 cursor-pointer transition-colors"></i>
+                    <i data-lucide="star" id="star-5" onclick="setRating(5)" class="w-8 h-8 text-slate-600 cursor-pointer transition-colors"></i>
+                </div>
+                <input type="text" placeholder="Deja un comentario (opcional)..." class="w-full bg-slate-950 p-3 rounded-xl text-sm border border-slate-800 text-slate-200 focus:border-amber-500 focus:outline-none">
+                <button class="mt-4 w-full bg-amber-500 text-black font-black py-3 rounded-xl active:scale-95 transition" onclick="navegarA('lobby-2-seleccion', 'Portal Operativo'); document.getElementById('bloque-rating').classList.add('hidden');">Enviar Evaluación</button>
+            </div>
+        </div>
+
+        <div id="lobby-10-viaje" class="pantalla-spa pantalla-oculta absolute inset-0 z-40 bg-slate-950 flex-col p-6">
+            <h2 class="text-2xl font-black text-emerald-400 mb-2">¡Viaje en Curso!</h2>
+            <p class="text-slate-400 text-sm mb-6">El conductor se dirige al destino certificado por GPS.</p>
+            <div class="grow bg-slate-900 rounded-3xl border border-slate-800 p-4 flex flex-col justify-center items-center shadow-inner">
+                <i data-lucide="map-pin" class="w-16 h-16 text-emerald-500 mb-4 animate-bounce"></i>
+                <p class="font-bold text-slate-200 text-lg">Unidad M-042</p>
+                <p class="text-xs text-slate-500 mt-1">Llegando en 3 minutos...</p>
+            </div>
+            <button onclick="document.getElementById('bloque-rating').classList.remove('hidden'); navegarA('lobby-9-espera', 'Califica tu viaje')" class="mt-6 bg-rose-500/10 text-rose-400 border border-rose-500/50 font-bold p-4 rounded-xl active:scale-95 transition">Finalizar Viaje (Botón de Demo)</button>
+        </div>
+
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready(); tg.expand(); lucide.createIcons();
+
+        let userTelegramId = tg.initDataUnsafe?.user?.id || 12345678;
+        document.getElementById('user-display-name').innerText = tg.initDataUnsafe?.user?.first_name || "Pasajero Local";
+
+        // Variables de Estado
+        let mapInstance = null, originMarker, destMarker, routeLine;
+        let latDefault = 10.2157, lonDefault = -66.8608;
+        let mapStyle = 'claro', capaActual;
+        let distanciaFinalKm = 0, precioBs = 0;
+        
+        // Enrutador SPA
+        function navegarA(idPantalla, tituloSub = "Estación Táctil") {
+            // Ocultar todas las pantallas
+            document.querySelectorAll('.pantalla-spa').forEach(p => {
+                p.classList.remove('pantalla-activa'); 
+                p.classList.add('pantalla-oculta');
+            });
+            
+            // Mostrar la elegida
+            const destino = document.getElementById(idPantalla);
+            if(destino) {
+                destino.classList.remove('pantalla-oculta'); 
+                destino.classList.add('pantalla-activa');
+            }
+            document.getElementById('app-status-subtitle').innerText = tituloSub;
+
+            // Arreglar bug de Leaflet cuando el div está oculto al inicio
+            if(idPantalla === 'lobby-3-mapa') {
+                setTimeout(() => { 
+                    initializeMapOnce(); 
+                    mapInstance.invalidateSize(); 
+                }, 200);
+            }
+        }
+
+        // Lógica del Mapa
+        function initializeMapOnce() {
+            if (mapInstance) return;
+            mapInstance = L.map('map', { zoomControl: false }).setView([latDefault, lonDefault], 15);
+            capaActual = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '© CARTO' }).addTo(mapInstance);
+            L.control.zoom({ position: 'topright' }).addTo(mapInstance);
+
+            originMarker = L.marker([latDefault, lonDefault], { draggable: true, icon: customIcon('A', 'bg-blue-500') }).addTo(mapInstance);
+            destMarker = L.marker([10.2110, -66.8600], { draggable: true, icon: customIcon('B', 'bg-amber-500 animate-bounce', 'text-black') }).addTo(mapInstance);
+            routeLine = L.polyline([], { color: '#f59e0b', weight: 5, opacity: 0.85 }).addTo(mapInstance);
+
+            originMarker.on('dragend', actualizarCalculos);
+            destMarker.on('dragend', actualizarCalculos);
+            actualizarCalculos();
+        }
+
+        function customIcon(letra, colorClases, textColor='text-white') {
+            return L.divIcon({
+                className: 'custom-div-icon',
+                html: `<div class='w-7 h-7 ${colorClases} border-2 border-slate-900 rounded-full flex items-center justify-center font-black text-xs ${textColor} shadow-xl'>${letra}</div>`,
+                iconSize: [28, 28]
+            });
+        }
+
+        function alternarMapa() {
+            mapInstance.removeLayer(capaActual);
+            if(mapStyle === 'claro') {
+                capaActual = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}').addTo(mapInstance);
+                mapStyle = 'satelite';
+                document.getElementById('btn-map-toggle').innerText = "🗺️ Mapa Claro";
+            } else {
+                capaActual = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(mapInstance);
+                mapStyle = 'claro';
+                document.getElementById('btn-map-toggle').innerText = "🗺️ Satélite";
+            }
+        }
+
+        async function actualizarCalculos() {
+            routeLine.setLatLngs([originMarker.getLatLng(), destMarker.getLatLng()]);
+            distanciaFinalKm = 2.5; 
+            precioBs = 65.00;
+            document.getElementById('distancia-texto').innerText = `${distanciaFinalKm.toFixed(2)} km`;
+            document.getElementById('precio-texto').innerText = `${precioBs.toFixed(2)} Bs.`;
+        }
+
+        // Lógica de Rating (Estrellas)
+        function setRating(estrellas) {
+            for(let i=1; i<=5; i++) {
+                let star = document.getElementById(`star-${i}`);
+                if(i <= estrellas) {
+                    star.classList.replace('text-slate-600', 'text-amber-500');
+                    star.setAttribute('fill', 'currentColor');
+                } else {
+                    star.classList.replace('text-amber-500', 'text-slate-600');
+                    star.setAttribute('fill', 'none');
+                }
+            }
+        }
+
+        // Arranque Inicial de la App
+        window.addEventListener('load', () => {
+            setTimeout(() => navegarA('lobby-2-seleccion', 'Bienvenido a la Red'), 1000);
+        });
+    </script>
+</body>
+</html>
