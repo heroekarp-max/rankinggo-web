@@ -597,16 +597,7 @@
                 };
             }
         }
-
-        // Mejora 2: Redirección nativa de SMS con filtrado estricto de comas
-        function ejecutarRedireccionSmsNativa() {
-            let montoFormateadoSms = precioBolivaresCalculado.toFixed(2).replace('.', ',');
-            let cuerpoMensaje = `Pagar 01020426421183525517007 ${montoFormateadoSms}`;
-            
-            // Estructura URI nativa limpia sin espacios críticos intermedios
-            window.location.href = `sms:2662?body=${encodeURIComponent(cuerpoMensaje)}`;
-        }
-
+        
         function cambiarVelocidad(tipo) {
             velocidadPreferida = tipo;
             document.getElementById('btn-vel-lento').className = tipo === 'lento' ? "bg-amber-500 text-black border border-amber-500 p-3 rounded-xl text-sm font-black transition" : "bg-slate-900 border border-slate-800 p-3 rounded-xl text-sm font-bold text-slate-400 transition";
