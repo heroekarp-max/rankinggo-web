@@ -575,10 +575,27 @@
             document.getElementById('precio-texto').innerText = `${precioBolivaresCalculado.toFixed(2)} Bs.`;
             document.getElementById('pm-monto-texto').innerText = `${precioBolivaresCalculado.toFixed(2)} Bs.`;
             document.getElementById('efectivo-comision-texto').innerText = `${(precioBolivaresCalculado * FACTOR_RETENCION_APP_NETA).toFixed(2)} Bs.`;
-            
-            // Reemplazo exacto de comas para formato SMS nativo venezolano
+    
+            // Formateamos el monto con coma para los bancos de Venezuela
             let montoStringSms = precioBolivaresCalculado.toFixed(2).replace('.', ',');
-            document.getElementById('sms-estructura-texto').innerText = `Pagar 0102 04264211835 25517007 ${montoStringSms}`;
+            let cuerpoMensajeCompleto = `Pagar 0102 04264211835 25517007 ${montoStringSms}`;
+    
+            // Mostramos el texto en el lobby
+            document.getElementById('sms-estructura-texto').innerText = cuerpoMensajeCompleto;
+
+            // SOLUCIÓN AL PATICO: Asignamos el protocolo SMS directamente al enlace HTML
+            let linkSmsEstructurado = `sms:2662?body=${encodeURIComponent(cuerpoMensajeCompleto)}`;
+            const botonSms = document.getElementById('btn-sms-dinamico');
+            if(botonSms) {
+                botonSms.href = linkSmsEstructurado;
+        
+                // BONUS DE ORO: Si hace clic, aparte de abrir la app, se lo copia al portapapeles por seguridad
+                botonSms.onclick = () => {
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(cuerpoMensajeCompleto);
+                    }
+                };
+            }
         }
 
         // Mejora 2: Redirección nativa de SMS con filtrado estricto de comas
