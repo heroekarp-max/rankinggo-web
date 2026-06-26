@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>RanKingGo Premium v3</title>
+    <title>RanKingGo Premium v3.5</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -14,7 +14,7 @@
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .pantalla-activa { display: flex !important; }
         .pantalla-oculta { display: none !important; }
-        #map, #map-conductor { height: 100%; width: 100%; position: absolute; inset: 0; z-index: 0; }
+        #map, #map-conductor, #map-operativo-conductor { height: 100%; width: 100%; position: absolute; inset: 0; z-index: 0; }
         
         /* FILTRO OPTIMIZADO: Fondo azul tecnológico descansado con calles y autopistas doradas de alta visibilidad */
         .leaflet-tile-container img {
@@ -30,6 +30,7 @@
 </head>
 <body class="flex flex-col h-screen select-none bg-slate-950">
 
+    <!-- CABECERA DE CONTROL -->
     <div class="p-4 bg-slate-900 border-b border-slate-800 flex items-center justify-between shadow-lg shrink-0 z-50">
         <div class="flex items-center gap-2">
             <div class="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-black font-black text-xl shadow-md">R</div>
@@ -44,8 +45,10 @@
         </div>
     </div>
 
+    <!-- CONTENEDOR MULTIPANTALLA SPA -->
     <div class="grow relative overflow-hidden" id="app-container">
 
+        <!-- LOBBY 1: REGISTRO PASAJERO -->
         <div id="lobby-1-registro" class="pantalla-spa pantalla-oculta absolute inset-0 z-40 bg-slate-950 flex-col p-6 overflow-y-auto no-scrollbar">
             <h2 class="text-xl font-bold text-slate-100 mb-2">Registro Inicial</h2>
             <p class="text-xs text-slate-400 mb-6">Vincula tu cuenta para usar la red de transporte.</p>
@@ -57,6 +60,7 @@
             <button onclick="registrarUsuarioNuevo()" class="w-full bg-amber-500 text-black font-black p-4 rounded-xl mt-6 shadow-lg">Establecer Credenciales</button>
         </div>
 
+        <!-- LOBBY REGISTRO COMPLEMENTARIO CONDUCTOR (OBLIGATORIO) -->
         <div id="lobby-registro-conductor" class="pantalla-spa pantalla-oculta absolute inset-0 z-50 bg-slate-950 flex-col p-6 overflow-y-auto no-scrollbar">
             <h2 class="text-xl font-black text-amber-500 mb-1">Registro de Conductor</h2>
             <p class="text-xs text-slate-400 mb-6">Completa estos datos obligatorios para poder activar tu consola de viajes.</p>
@@ -79,6 +83,7 @@
             <button onclick="guardarRegistroTecnicoConductor()" class="w-full bg-amber-500 text-black font-black p-4 rounded-xl mt-6 shadow-lg uppercase tracking-wider text-sm">Validar y Activar Perfil</button>
         </div>
 
+        <!-- LOBBY 2: SELECCIÓN DE ROL -->
         <div id="lobby-2-seleccion" class="pantalla-spa pantalla-oculta absolute inset-0 z-40 bg-slate-950 flex-col justify-center items-center p-6">
             <div class="w-20 h-20 bg-amber-500 rounded-2xl flex items-center justify-center text-4xl mb-6 shadow-xl shadow-amber-500/10">🏍️</div>
             <h2 class="text-2xl font-black text-slate-100 text-center mb-1">RanKingGo Urbano</h2>
@@ -90,12 +95,14 @@
             <button onclick="borrarRegistroPrueba()" class="text-[10px] text-slate-600 underline mt-12">Simular Limpieza de Datos (Pruebas)</button>
         </div>
 
+        <!-- LOBBY 3: MAPA (PASAJERO) -->
         <div id="lobby-3-mapa" class="pantalla-spa pantalla-oculta absolute inset-0 z-20 flex-col justify-end">
             <div id="map"></div>
             
             <button onclick="navegarA('lobby-2-seleccion', 'Portal')" class="absolute top-4 left-4 z-10 bg-slate-900/90 text-slate-200 px-3 py-2 rounded-xl text-xs font-bold border border-slate-700 shadow-lg">⬅ Volver</button>
-            <button onclick="recalcularUbicacionPrecisaPasajero()" class="absolute top-4 right-4 z-10 bg-amber-500 text-black p-3 rounded-full shadow-xl border border-amber-600 active:scale-95 transition flex items-center justify-center" title="Recalcular Ubicación Precisa"><i data-lucide="gps" class="w-5 h-5"></i></button>
+            <button onclick="recalcularUbicacionPrecisaPasajero()" class="absolute top-4 right-4 z-10 bg-amber-500 text-black p-3 rounded-full shadow-xl border border-amber-600 active:scale-95 transition flex items-center justify-center"><i data-lucide="map-pin" class="w-5 h-5"></i></button>
 
+            <!-- Panel Inferior de Cotización -->
             <div class="relative bg-slate-950 border-t border-slate-800 p-4 rounded-t-3xl z-10 space-y-4 shadow-2xl">
                 <div class="grid grid-cols-2 gap-2 bg-slate-900 p-3 rounded-2xl border border-slate-800">
                     <div>
@@ -111,6 +118,7 @@
             </div>
         </div>
 
+        <!-- LOBBY 4: CONSOLA CONDUCTOR -->
         <div id="lobby-4-conductor" class="pantalla-spa pantalla-oculta absolute inset-0 z-40 bg-slate-950 flex-col p-5 overflow-y-auto no-scrollbar">
             <div class="flex justify-between items-center mb-4">
                 <div>
@@ -120,6 +128,7 @@
                 <button onclick="activarBotonAlertaSMSO()" class="bg-rose-600 animate-pulse text-white font-black text-[10px] px-3 py-1.5 rounded-xl border border-rose-500 shadow-lg flex items-center gap-1"><i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> ALERTA SOS</button>
             </div>
 
+            <!-- MONEDEROS E INDICADORES DE FONDOS -->
             <div class="grid grid-cols-3 gap-2 mb-4">
                 <div class="bg-slate-900 p-3 rounded-xl border border-slate-800">
                     <p class="text-[8px] text-slate-500 font-bold uppercase">Billetera</p>
@@ -138,13 +147,7 @@
                 </div>
             </div>
 
-            <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-3 mb-4 flex items-start gap-2">
-                <i data-lucide="clock" class="w-4 h-4 text-amber-500 shrink-0 mt-0.5"></i>
-                <div class="text-[10px] text-slate-400 leading-relaxed">
-                    Retenciones automatizadas: 12% total (9% plataforma + 3% caja de ahorro mensual). Liquidaciones 2 veces al día a las <span class="text-amber-400 font-bold">12:00 PM</span> y <span class="text-amber-400 font-bold">6:00 PM</span>.
-                </div>
-            </div>
-
+            <!-- RADAR / MONITOR DE SOLICITUDES -->
             <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 flex flex-col items-center justify-center grow min-h-[180px] text-center relative overflow-hidden">
                 <div id="radar-searching" class="flex flex-col items-center">
                     <i data-lucide="radar" class="w-8 h-8 text-amber-500 animate-spin mb-2"></i>
@@ -152,21 +155,19 @@
                     <button onclick="simularViajeEntrante()" class="mt-4 text-[10px] bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-slate-400 font-bold">Simular Alerta Pasajero</button>
                 </div>
                 
-                <div id="radar-alert" class="hidden absolute inset-0 z-10 bg-slate-900 flex-col p-3">
-                    <div class="flex justify-between items-center bg-slate-950 p-2 rounded-xl border border-slate-800 mb-1.5 text-[10px]">
-                        <span class="font-black text-amber-500 uppercase">¡Nueva Ruta de Destino!</span>
+                <!-- PANAL DE ALERTA RÁPIDA -->
+                <div id="radar-alert" class="hidden absolute inset-0 z-10 bg-slate-900 flex-col p-4 justify-between">
+                    <div class="flex justify-between items-center bg-slate-950 p-2 rounded-xl border border-slate-800 text-[10px]">
+                        <span class="font-black text-amber-500 uppercase">🚨 ¡Solicitud Entrante!</span>
                         <span id="alert-velocidad-badge" class="px-2 py-0.5 rounded bg-amber-500 text-black font-black">🐢 LENTO</span>
                     </div>
-                    <div class="flex justify-between items-center mb-2 px-1 text-[11px]">
-                        <span class="text-slate-400 font-bold">Tarifa Total Bruta:</span>
-                        <span id="alert-monto" class="font-black text-emerald-400">0.00 Bs</span>
-                    </div>
-                    <div class="grow relative rounded-xl overflow-hidden border border-slate-800 bg-slate-950 mb-2">
-                        <div id="map-conductor"></div>
+                    <div class="p-4 bg-slate-950 rounded-xl border border-slate-800 text-center space-y-1">
+                        <p class="text-slate-400 text-xs font-bold">Ganancia Estimada Bruta:</p>
+                        <p id="alert-monto" class="text-2xl font-black text-emerald-400">0.00 Bs</p>
                     </div>
                     <div class="grid grid-cols-2 gap-2 shrink-0">
-                        <button onclick="rechazarViajeConductor()" class="bg-slate-950 border border-slate-800 text-slate-400 font-bold p-2 rounded-xl text-xs uppercase">Ignorar</button>
-                        <button onclick="aceptarViajeConductor()" class="bg-emerald-500 text-black font-black p-2 rounded-xl text-xs uppercase shadow-lg">Aceptar Carrera</button>
+                        <button onclick="rechazarViajeConductor()" class="bg-slate-950 border border-slate-800 text-slate-400 font-bold p-3 rounded-xl text-xs uppercase">Ignorar</button>
+                        <button onclick="aceptarViajeConductor()" class="bg-emerald-500 text-black font-black p-3 rounded-xl text-xs uppercase shadow-lg">Aceptar Carrera</button>
                     </div>
                 </div>
             </div>
@@ -174,6 +175,7 @@
             <button onclick="navegarA('lobby-2-seleccion', 'Portal')" class="mt-4 bg-slate-900 text-slate-500 font-bold p-2.5 rounded-xl text-xs uppercase text-center border border-slate-800/60">⬅ Salir de Consola</button>
         </div>
 
+        <!-- LOBBY 5: CONFIGURAR VIAJE -->
         <div id="lobby-5-pago" class="pantalla-spa pantalla-oculta absolute inset-0 z-40 bg-slate-950 flex-col p-6">
             <div class="flex items-center gap-2 mb-6">
                 <button onclick="navegarA('lobby-3-mapa', 'Solicitar Viaje')" class="p-2 bg-slate-900 rounded-lg text-slate-300"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
@@ -194,6 +196,7 @@
             </div>
         </div>
 
+        <!-- LOBBY 6: PAGO MÓVIL APP -->
         <div id="lobby-6-pagomovil" class="pantalla-spa pantalla-oculta absolute inset-0 z-40 bg-slate-950 flex-col p-6">
             <div class="flex items-center gap-2 mb-6">
                 <button onclick="navegarA('lobby-5-pago', 'Parámetros')" class="p-2 bg-slate-900 rounded-lg text-slate-300"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
@@ -209,12 +212,12 @@
             <button onclick="procesarSolicitudViajeCompleta()" class="w-full bg-amber-500 text-black font-black p-4 rounded-xl active:scale-95 transition">Confirmar y Transmitir</button>
         </div>
 
+        <!-- LOBBY 7: PAGO SMS -->
         <div id="lobby-7-pagosms" class="pantalla-spa pantalla-oculta absolute inset-0 z-40 bg-slate-950 flex-col p-6 overflow-y-auto no-scrollbar">
             <div class="flex items-center gap-2 mb-4">
                 <button onclick="navegarA('lobby-5-pago', 'Parámetros')" class="p-2 bg-slate-900 rounded-lg text-slate-300"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
                 <h2 class="text-xl font-bold text-slate-100">Comando SMS</h2>
             </div>
-
             <div class="bg-slate-900 border border-slate-800 p-3.5 rounded-xl mb-4 text-[11px] text-slate-300 space-y-2">
                 <p class="font-black text-amber-500 uppercase flex items-center gap-1"><i data-lucide="help-circle" class="w-3.5 h-3.5"></i> Guía de Pago Rápido:</p>
                 <ol class="list-decimal pl-4 space-y-1 text-slate-400">
@@ -224,17 +227,13 @@
                     <li>Copia los <span class="text-emerald-400 font-bold">últimos 4 números de la referencia</span>, pégalos aquí abajo y dale a validar.</li>
                 </ol>
             </div>
-
-            <a id="btn-sms-dinamico" href="#" target="_blank" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black p-3.5 rounded-xl text-xs uppercase tracking-wider mb-4 flex items-center justify-center gap-2 shadow-lg"><i data-lucide="message-square" class="w-4 h-4"></i> Presiona para Abrir Mensajería y Pagar</a>
-
-            <div id="sms-estructura-texto" class="bg-slate-900/40 p-3 rounded-xl border border-slate-800 mb-4 font-mono text-[11px] text-amber-400 text-center select-all">
-                Pagar 0102 04264211835 25517007 0,00
-            </div>
-            
+            <a id="btn-sms-dinamico" href="#" target="_blank" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black p-3.5 rounded-xl text-xs uppercase tracking-wider mb-4 flex items-center justify-center gap-2 shadow-lg"><i data-lucide="message-square" class="w-4 h-4"></i> Abrir Mensajería Nativa</a>
+            <div id="sms-estructura-texto" class="bg-slate-900/40 p-3 rounded-xl border border-slate-800 mb-4 font-mono text-[11px] text-amber-400 text-center select-all">Pagar 0102 04264211835 25517007 0,00</div>
             <input type="tel" id="sms-ref" maxlength="4" placeholder="Ingresa los 4 dígitos de Referencia" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3.5 text-center font-black text-lg text-slate-100 focus:outline-none mb-4">
             <button onclick="procesarSolicitudViajeCompleta()" class="w-full bg-amber-500 text-black font-black p-4 rounded-xl">Validar Transacción</button>
         </div>
 
+        <!-- LOBBY 8: EFECTIVO -->
         <div id="lobby-8-efectivo" class="pantalla-spa pantalla-oculta absolute inset-0 z-40 bg-slate-950 flex-col p-6">
             <div class="flex items-center gap-2 mb-6">
                 <button onclick="navegarA('lobby-5-pago', 'Parámetros')" class="p-2 bg-slate-900 rounded-lg text-slate-300"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
@@ -248,12 +247,10 @@
             <button onclick="procesarSolicitudViajeCompleta()" class="w-full bg-amber-500 text-black font-black p-4 rounded-xl">Solicitar en Efectivo</button>
         </div>
 
+        <!-- LOBBY 9: ESPERA (PASAJERO) -->
         <div id="lobby-9-espera" class="pantalla-spa pantalla-oculta absolute inset-0 z-40 bg-slate-950 flex-col p-5 overflow-y-auto no-scrollbar">
-            
             <div id="espera-buscando-bloque" class="flex flex-col items-center justify-center text-center py-2">
-                <div class="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center animate-pulse mb-2 border border-amber-500/20">
-                    <i data-lucide="broadcast" class="w-6 h-6 text-amber-500"></i>
-                </div>
+                <div class="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center animate-pulse mb-2 border border-amber-500/20"><i data-lucide="broadcast" class="w-6 h-6 text-amber-500"></i></div>
                 <h2 class="text-base font-black text-slate-100">Asignando Unidad Cercana</h2>
                 
                 <div class="mt-2 bg-slate-900 px-4 py-1.5 rounded-full border border-slate-800 text-xs flex items-center gap-2">
@@ -261,6 +258,7 @@
                     <span id="txt-contador-limite" class="text-rose-400 font-mono font-black">00:00</span>
                 </div>
 
+                <!-- MINIJUEGO BLOCK PUZZLE -->
                 <div class="mt-4 bg-slate-900/90 border border-slate-800 p-4 rounded-2xl flex flex-col items-center max-w-[260px] w-full shadow-inner">
                     <p class="text-[10px] text-amber-500 font-black uppercase tracking-wider mb-1 flex items-center gap-1">🎮 Mini Block Puzzle</p>
                     <p class="text-[9px] text-slate-400 mb-3">¡Rellena filas/columnas para puntuar!</p>
@@ -275,8 +273,6 @@
                     <button onclick="registrarAccionLlegadaPasajero(false)" class="bg-slate-900 border border-rose-900/40 text-rose-400 text-[10px] font-bold p-2.5 rounded-xl uppercase">❌ ¡No Llegó!</button>
                     <button onclick="registrarAccionLlegadaPasajero(true)" class="bg-emerald-500 text-black text-[10px] font-black p-2.5 rounded-xl uppercase shadow-md shadow-emerald-500/10">🏍️ ¡Ya Llegó!</button>
                 </div>
-
-                <button onclick="forzarAceptacionDesdePasajero()" class="mt-4 text-[9px] text-slate-600 underline">Simular Aceptación de Conductor Externo</button>
             </div>
             
             <div class="w-full bg-slate-900 p-5 rounded-2xl border border-slate-800 hidden text-center shadow-xl mt-4" id="bloque-rating">
@@ -292,6 +288,7 @@
             </div>
         </div>
 
+        <!-- LOBBY 10: VIAJE EN CURSO -->
         <div id="lobby-10-viaje" class="pantalla-spa pantalla-oculta absolute inset-0 z-40 bg-slate-950 flex-col p-6">
             <h2 class="text-xl font-black text-emerald-400 mb-1">Viaje en Ejecución 🏍️</h2>
             <p class="text-slate-400 text-xs mb-4">Sincronización de satélites activa en segundo plano.</p>
@@ -303,12 +300,44 @@
             <button onclick="ejecutarArriboDestinoAutomatico()" class="mt-4 text-[10px] text-slate-500 underline text-center">Forzar Llegada (Simulación GPS)</button>
         </div>
 
+        <!-- LOBBY 11: MAPA OPERATIVO DE SEGURIDAD (CONDUCTOR EN NAVEGACIÓN ACTIVA) -->
+        <div id="lobby-11-mapa-conductor" class="pantalla-spa pantalla-oculta absolute inset-0 z-40 flex-col justify-end">
+            <div id="map-operativo-conductor"></div>
+            
+            <!-- Barra Flotante Superior de Estado Anti-Fraude -->
+            <div class="absolute top-4 left-4 right-4 z-10 bg-slate-900/95 border border-slate-800 p-3 rounded-xl shadow-2xl flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <div id="cond-fase-icono" class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></div>
+                    <div>
+                        <p id="cond-fase-titulo" class="text-[10px] font-black uppercase text-amber-500 tracking-wider">Cargando Mapa...</p>
+                        <p id="cond-fase-desc" class="text-[9px] text-slate-400">Verificando coordenadas criptográficas...</p>
+                    </div>
+                </div>
+                <span id="cond-fase-velocidad" class="text-[9px] font-black px-2 py-0.5 bg-slate-800 text-amber-400 rounded border border-slate-700 uppercase">LENTO</span>
+            </div>
+
+            <!-- Panel de Control del Conductor -->
+            <div class="relative bg-slate-950 border-t border-slate-800 p-4 rounded-t-3xl z-10 space-y-3 shadow-2xl">
+                <div class="grid grid-cols-2 gap-2 bg-slate-900 p-3 rounded-xl border border-slate-800 text-xs">
+                    <div>
+                        <p class="text-slate-500 text-[9px] uppercase font-bold">Cliente Vinculado</p>
+                        <p id="cond-op-cliente-nom" class="font-bold text-slate-200">Buscando...</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-slate-500 text-[9px] uppercase font-bold">Monto Blindado</p>
+                        <p id="cond-op-monto" class="font-black text-emerald-400 text-sm">0.00 Bs</p>
+                    </div>
+                </div>
+                <button onclick="activarBotonAlertaSMSO()" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-black py-3 rounded-xl text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2"><i data-lucide="alert-triangle" class="w-4 h-4"></i> ENVIAR ALERTA AUXILIO (SOS)</button>
+            </div>
+        </div>
+
+        <!-- LOBBY: CAMPEONATO DEL MÁS CHAMBEADOR -->
         <div id="lobby-leaderboard" class="pantalla-spa pantalla-oculta absolute inset-0 z-50 bg-slate-950 flex-col p-5 overflow-y-auto no-scrollbar">
             <div class="flex items-center gap-2 mb-4">
                 <button onclick="navegarA('lobby-2-seleccion', 'Portal')" class="p-1.5 bg-slate-900 rounded-lg text-slate-300"><i data-lucide="arrow-left" class="w-4 h-4"></i></button>
                 <h2 class="text-md font-black text-slate-100 uppercase tracking-wider">Campeonato del Más Chambeador</h2>
             </div>
-
             <div class="bg-gradient-to-b from-amber-900/40 via-slate-900 to-slate-950 p-4 rounded-2xl border border-amber-500/20 text-center relative overflow-hidden shadow-lg mb-4 flex flex-col items-center">
                 <div class="w-14 h-14 bg-gradient-to-tr from-amber-600 via-yellow-400 to-amber-500 rounded-full flex items-center justify-center shadow-lg shadow-amber-500/20 relative animate-pulse mb-2 border border-yellow-300">
                     <span class="text-xl">🏆</span>
@@ -316,28 +345,20 @@
                 </div>
                 <h3 class="text-xs font-black text-yellow-400 uppercase tracking-widest">Insignia Oro Chambeador</h3>
                 <p class="text-[10px] text-slate-400 mt-0.5 max-w-[220px]">Otorgada al motorizado con mayor volumen de carreras efectivas registradas en el mes.</p>
-                <div class="mt-2 bg-amber-500/10 text-amber-400 text-[10px] font-bold px-3 py-1 rounded-full border border-amber-500/20">
-                    Premio Acumulado: <span id="pool-chambeo-total" class="font-black text-emerald-400">0.00 Bs</span>
-                </div>
+                <div class="mt-2 bg-amber-500/10 text-amber-400 text-[10px] font-bold px-3 py-1 rounded-full border border-amber-500/20">Premio Acumulado: <span id="pool-chambeo-total" class="font-black text-emerald-400">0.00 Bs</span></div>
             </div>
-
             <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden">
-                <div class="bg-slate-950 p-3 border-b border-slate-800 text-[9px] uppercase font-bold text-slate-400 tracking-wider grid grid-cols-12">
-                    <span class="col-span-2 text-center">Pos</span>
-                    <span class="col-span-6">Conductor</span>
-                    <span class="col-span-4 text-right">Viajes (Mes)</span>
-                </div>
-                <div class="divide-y divide-slate-800/60" id="leaderboard-rows-container">
-                    </div>
+                <div class="bg-slate-950 p-3 border-b border-slate-800 text-[9px] uppercase font-bold text-slate-400 tracking-wider grid grid-cols-12"><span class="col-span-2 text-center">Pos</span><span class="col-span-6">Conductor</span><span class="col-span-4 text-right">Viajes (Mes)</span></div>
+                <div class="divide-y divide-slate-800/60" id="leaderboard-rows-container"></div>
             </div>
         </div>
 
+        <!-- LOBBY: PERFIL DE USUARIO -->
         <div id="lobby-perfil" class="pantalla-spa pantalla-oculta absolute inset-0 z-50 bg-slate-950 flex-col p-6 overflow-y-auto no-scrollbar">
             <div class="flex items-center gap-2 mb-6">
                 <button onclick="navegarA('lobby-2-seleccion', 'Portal')" class="p-2 bg-slate-900 rounded-lg text-slate-300"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
                 <h2 class="text-xl font-bold text-slate-100">Mi Perfil Digital</h2>
             </div>
-
             <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 flex items-center gap-4 mb-4">
                 <div class="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center font-black text-black text-xl shadow-lg" id="perfil-avatar-letra">U</div>
                 <div>
@@ -345,18 +366,10 @@
                     <p id="perfil-rol-txt" class="text-[10px] uppercase font-bold text-amber-500 tracking-wider">Usuario de la Red</p>
                 </div>
             </div>
-
             <div class="grid grid-cols-2 gap-3 mb-4">
-                <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
-                    <p class="text-[9px] text-slate-500 font-bold uppercase">Viajes Solicitados</p>
-                    <p id="stats-viajes-solicitados" class="text-xl font-black text-slate-200 mt-1">0</p>
-                </div>
-                <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
-                    <p class="text-[9px] text-slate-500 font-bold uppercase">Viajes Conducidos</p>
-                    <p id="stats-viajes-conducidos" class="text-xl font-black text-slate-200 mt-1">0</p>
-                </div>
+                <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800"><p class="text-[9px] text-slate-500 font-bold uppercase">Viajes Solicitados</p><p id="stats-viajes-solicitados" class="text-xl font-black text-slate-200 mt-1">0</p></div>
+                <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800"><p class="text-[9px] text-slate-500 font-bold uppercase">Viajes Conducidos</p><p id="stats-viajes-conducidos" class="text-xl font-black text-slate-200 mt-1">0</p></div>
             </div>
-
             <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-2 text-xs text-slate-400" id="perfil-datos-tecnicos-box">
                 <p class="text-[10px] font-black text-slate-300 uppercase tracking-wider border-b border-slate-800 pb-1.5">Datos Registrados de Control</p>
                 <div>Teléfono: <span id="perf-val-tlf" class="text-slate-200 font-mono font-bold"></span></div>
@@ -378,9 +391,12 @@
         let userTelegramName = tg.initDataUnsafe?.user?.first_name || "Pasajero Local";
 
         let latDefault = 10.2157, lonDefault = -66.8608;
-        let mapPasajero = null, mapConductor = null;
+        let mapPasajero = null, mapConductor = null, mapOperativoConductor = null;
         let pOriginMarker, pDestMarker, pRouteLine;
         let cOriginMarker, cDestMarker, cRouteLine;
+        
+        // Marcadores e hilos para la pantalla activa del conductor (Lobby 11)
+        let ocMarkerConductor, ocMarkerPasajero, ocRouteLineOperativa;
 
         let distanciaFinalMetros = 0, precioBolivaresCalculado = 0;
         let velocidadPreferida = 'lento', gpsTrackerWatchId = null;
@@ -388,34 +404,29 @@
 
         // Estructura de Tarifas Técnicas Basado en 1$ = 600.00 Bs.
         const TASA_CAMBIO = 600.00;
-        const TARIFA_MINIMA_BS = 300.00; // Medio dólar minimo
-        const DISTANCIA_MINIMA_METROS = 2000; // 2 kilómetros cubiertos
-        const PRECIO_POR_METRO_EXTRA = 150.00 / 1000; // 0.15 Bs por metro adicional (1$ = 4km)
+        const TARIFA_MINIMA_BS = 300.00; 
+        const DISTANCIA_MINIMA_METROS = 2000; 
+        const PRECIO_POR_METRO_EXTRA = 150.00 / 1000; 
 
         const CONSUMO_GASOLINA_L_POR_METRO = 0.040 / 1000;
-        const COSTO_LITRO_GASOLINA_BS = 300.00; // 2 litros de gasolina = 1$ (600 Bs) -> 1 Litro = 300 Bs.
+        const COSTO_LITRO_GASOLINA_BS = 300.00; 
         
-        // DISTRIBUCIÓN EXPLICITA DE RETENCIONES DE LA APP (12% TOTAL)
-        const FACTOR_RETENCION_APP_NETA = 0.09; // 9% Ganancia pura de la plataforma
-        const FACTOR_CHAMBEO_POOL = 0.03; // 3% Para caja de ahorro y campeonato del más chambeador
+        const FACTOR_RETENCION_APP_NETA = 0.09; 
+        const FACTOR_CHAMBEO_POOL = 0.03; 
 
         // Ciclo de Inicio Automático
         window.addEventListener('load', () => {
-            document.getElementById('reg-telegram-id').value = userTelegramId;
-            
             if (localStorage.getItem('rankinggo_registered_v3') === 'true') {
                 navegarA('lobby-2-seleccion', 'Portal Operativo');
             } else {
                 navegarA('lobby-1-registro', 'Registro de Identidad');
             }
-            
             actualizarInterfazBilletera();
             generarTablaCampeonatoSimulada();
             ejecutarGpsPrecisoDispositivo(false);
             reiniciarMinijuegoBloques();
         });
 
-        // Geolocalización Forzada y Precisa (Mejora 7: El usuario ya no mueve el pin manual)
         function ejecutarGpsPrecisoDispositivo(forzarAlerta = false) {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(pos => {
@@ -428,14 +439,12 @@
                     }
                     if (forzarAlerta) alert("Ubicación recalculada con éxito por satélite.");
                 }, () => {
-                    if (forzarAlerta) alert("No se pudo obtener señal GPS de alta precisión. Revisa tus permisos.");
+                    if (forzarAlerta) alert("Error de sincronización GPS.");
                 }, { enableHighAccuracy: true, timeout: 10000 });
             }
         }
 
-        function recalcularUbicacionPrecisaPasajero() {
-            ejecutarGpsPrecisoDispositivo(true);
-        }
+        function recalcularUbicacionPrecisaPasajero() { ejecutarGpsPrecisoDispositivo(true); }
 
         function registrarUsuarioNuevo() {
             const nom = document.getElementById('reg-nombre').value.trim();
@@ -447,11 +456,9 @@
             localStorage.setItem('rankinggo_user_phone', tlf);
             localStorage.setItem('stats_solicitados', '0');
             localStorage.setItem('stats_conducidos', '0');
-            
             navegarA('lobby-2-seleccion', 'Portal Operativo');
         }
 
-        // Control de Acceso Consola Conductor (Mejora 1: Registro complementario estricto)
         function intentarEntrarConsolaConductor() {
             if (localStorage.getItem('rankinggo_driver_registered') === 'true') {
                 document.getElementById('cond-id-display').innerText = `ID OPERATIVO: M-${userTelegramId.toString().slice(-4)}`;
@@ -469,24 +476,18 @@
             const cedPm = document.getElementById('cond-pm-ced').value.trim();
 
             if (!ced || !moto || !bco || !tlf || !cedPm) {
-                return alert('Para ser conductor debes completar todos tus datos de identificación, vehículo y Pago Móvil diario.');
+                return alert('Para ser conductor debes completar todos tus datos obligatorios.');
             }
 
             localStorage.setItem('rankinggo_driver_registered', 'true');
             localStorage.setItem('rankinggo_driver_cedula', ced);
             localStorage.setItem('rankinggo_driver_moto', moto);
             localStorage.setItem('rankinggo_driver_pm', `${bco}|${tlf}|${cedPm}`);
-            
-            alert('¡Perfil verificado! Ya tienes autorización para realizar carreras en la plataforma.');
             intentarEntrarConsolaConductor();
         }
 
-        function borrarRegistroPrueba() {
-            localStorage.clear();
-            location.reload();
-        }
+        function borrarRegistroPrueba() { localStorage.clear(); location.reload(); }
 
-        // Sistema de Navegación SPA e Inyección de Datos del Perfil (Mejora 8)
         function navegarA(idPantalla, tituloSub = "RanKingGo") {
             document.querySelectorAll('.pantalla-spa').forEach(p => {
                 p.classList.remove('pantalla-activa'); p.classList.add('pantalla-oculta');
@@ -498,41 +499,30 @@
             if(idPantalla === 'lobby-3-mapa') {
                 setTimeout(() => { inicializarMapaPasajero(); mapPasajero.invalidateSize(); }, 200);
             }
-            if(idPantalla === 'lobby-perfil') {
-                cargarDatosLobbyPerfil();
-            }
+            if(idPantalla === 'lobby-perfil') { cargarDatosLobbyPerfil(); }
         }
 
         function cargarDatosLobbyPerfil() {
             const n = localStorage.getItem('rankinggo_user_name') || userTelegramName;
-            const t = localStorage.getItem('rankinggo_user_phone') || "No registrado";
             document.getElementById('perfil-nombre-txt').innerText = n;
             document.getElementById('perfil-avatar-letra').innerText = n.charAt(0).toUpperCase();
-            document.getElementById('perf-val-tlf').innerText = t;
+            document.getElementById('perf-val-tlf').innerText = localStorage.getItem('rankinggo_user_phone') || "No registrado";
 
-            const esConductor = localStorage.getItem('rankinggo_driver_registered') === 'true';
-            if (esConductor) {
+            if (localStorage.getItem('rankinggo_driver_registered') === 'true') {
                 document.getElementById('perfil-rol-txt').innerText = "Conductor Autorizado 🏍️";
                 document.getElementById('perf-row-cedula').classList.remove('hidden');
                 document.getElementById('perf-row-moto').classList.remove('hidden');
                 document.getElementById('perf-val-cedula').innerText = localStorage.getItem('rankinggo_driver_cedula');
                 document.getElementById('perf-val-moto').innerText = localStorage.getItem('rankinggo_driver_moto');
-            } else {
-                document.getElementById('perfil-rol-txt').innerText = "Usuario de la Red";
-                document.getElementById('perf-row-cedula').classList.add('hidden');
-                document.getElementById('perf-row-moto').classList.add('hidden');
             }
-
             document.getElementById('stats-viajes-solicitados').innerText = localStorage.getItem('stats_solicitados') || '0';
             document.getElementById('stats-viajes-conducidos').innerText = localStorage.getItem('stats_conducidos') || '0';
         }
 
-        // Inicialización del Mapa Base (Mejora 7: draggable en false para evitar movimientos accidentales)
         function inicializarMapaPasajero() {
             if (mapPasajero) return;
             mapPasajero = L.map('map', { zoomControl: false }).setView([latDefault, lonDefault], 16);
-            
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '©OSM' }).addTo(mapPasajero);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(mapPasajero);
 
             pOriginMarker = L.marker([latDefault, lonDefault], { draggable: false, icon: crearIconoPuntero('A', 'bg-blue-600 text-white') }).addTo(mapPasajero);
             pDestMarker = L.marker([latDefault + 0.006, lonDefault + 0.006], { draggable: true, icon: crearIconoPuntero('B', 'bg-amber-500 text-black') }).addTo(mapPasajero);
@@ -564,8 +554,7 @@
                 }
             } catch {
                 distanciaFinalMetros = org.distanceTo(dst) * 1.25;
-                precioBolivaresCalculado = distanciaFinalMetros <= DISTANCIA_MINIMA_METROS ? TARIFA_MINIMA_BS : TARIFA_MINIMA_BS + ((distanciaFinalMetros - DISTANCIA_MINIMA_METROS) * PRECIO_POR_METRO_EXTRA);
-                pRouteLine.setLatLngs([org, dst]);
+                precioBolivaresCalculado = TARIFA_MINIMA_BS;
                 inyectarMétricasPantalla();
             }
         }
@@ -575,106 +564,100 @@
             document.getElementById('precio-texto').innerText = `${precioBolivaresCalculado.toFixed(2)} Bs.`;
             document.getElementById('pm-monto-texto').innerText = `${precioBolivaresCalculado.toFixed(2)} Bs.`;
             document.getElementById('efectivo-comision-texto').innerText = `${(precioBolivaresCalculado * FACTOR_RETENCION_APP_NETA).toFixed(2)} Bs.`;
-    
-            // Formateamos el monto con coma para los bancos de Venezuela
+            
             let montoStringSms = precioBolivaresCalculado.toFixed(2).replace('.', ',');
             let cuerpoMensajeCompleto = `Pagar 0102 04264211835 25517007 ${montoStringSms}`;
-    
-            // Mostramos el texto en el lobby
             document.getElementById('sms-estructura-texto').innerText = cuerpoMensajeCompleto;
 
-            // SOLUCIÓN AL PATICO: Asignamos el protocolo SMS directamente al enlace HTML
             let linkSmsEstructurado = `sms:2662?body=${encodeURIComponent(cuerpoMensajeCompleto)}`;
             const botonSms = document.getElementById('btn-sms-dinamico');
             if(botonSms) {
                 botonSms.href = linkSmsEstructurado;
-        
-                // BONUS DE ORO: Si hace clic, aparte de abrir la app, se lo copia al portapapeles por seguridad
-                botonSms.onclick = () => {
-                    if (navigator.clipboard && navigator.clipboard.writeText) {
-                        navigator.clipboard.writeText(cuerpoMensajeCompleto);
-                    }
-                };
+                botonSms.onclick = () => { if (navigator.clipboard) navigator.clipboard.writeText(cuerpoMensajeCompleto); };
             }
         }
-        
+
         function cambiarVelocidad(tipo) {
             velocidadPreferida = tipo;
             document.getElementById('btn-vel-lento').className = tipo === 'lento' ? "bg-amber-500 text-black border border-amber-500 p-3 rounded-xl text-sm font-black transition" : "bg-slate-900 border border-slate-800 p-3 rounded-xl text-sm font-bold text-slate-400 transition";
             document.getElementById('btn-vel-rapido').className = tipo === 'rapido' ? "bg-amber-500 text-black border border-amber-500 p-3 rounded-xl text-sm font-black transition" : "bg-slate-900 border border-slate-800 p-3 rounded-xl text-sm font-bold text-slate-400 transition";
         }
 
-        // Billeteras e Interfaz Financiera (Mejora 5: Adición de caja de ahorro 3%)
         function actualizarInterfazBilletera() {
             let b = parseFloat(localStorage.getItem('w_acumulado') || '0');
             let p = parseFloat(localStorage.getItem('w_pote') || '0');
             let pool = parseFloat(localStorage.getItem('w_pool') || '0');
-
             document.getElementById('wallet-acumulado').innerText = `${b.toFixed(2)} Bs.`;
             document.getElementById('wallet-pote').innerText = `${p.toFixed(2)} Bs.`;
             document.getElementById('wallet-chambeo-pool').innerText = `${pool.toFixed(2)} Bs.`;
             document.getElementById('pool-chambeo-total').innerText = `${pool.toFixed(2)} Bs.`;
-
-            const btn = document.getElementById('btn-retirar-aceite');
-            if (p >= 6000.00) { // 10 dólares son 6000 Bs
-                btn.disabled = false; btn.className = "w-full text-[8px] bg-amber-500 text-black py-0.5 rounded font-black mt-1";
-            } else {
-                btn.disabled = true; btn.className = "w-full text-[8px] bg-slate-800 text-slate-500 py-0.5 rounded font-bold mt-1";
-            }
         }
 
-        function retirarPoteAceite() {
-            alert("Retiro del pote de aceite procesado exitosamente hacia tu cuenta principal.");
-            localStorage.setItem('w_pote', '0');
-            actualizarInterfazBilletera();
-        }
+        function activarBotonAlertaSMSO() { alert("⚠️ EMERGENGIA SOS EMITIDA SATELITALMENTE A LA RED CENTRAL."); }
 
-        // Mejora 4: Alerta de emergencia SOS del Conductor
-        function activarBotonAlertaSMSO() {
-            alert("⚠️ ALERTA DE EMERGENCIA EMITIDA ⚠️\nSe ha enviado tu geolocalización satelital en tiempo real a todas las unidades activas en el perímetro para asistencia inmediata.");
-        }
-
-        // Simulación de Consola Conductor Inteligente (Muestra velocidad requerida por Pasajero)
         function simularViajeEntrante() {
             document.getElementById('alert-monto').innerText = `${precioBolivaresCalculado.toFixed(2)} Bs.`;
             document.getElementById('alert-velocidad-badge').innerText = velocidadPreferida === 'lento' ? "🐢 TRANQUILO" : "⚡ RÁPIDO";
             document.getElementById('radar-alert').classList.remove('hidden');
-
-            setTimeout(() => {
-                if (!mapConductor) {
-                    mapConductor = L.map('map-conductor', { zoomControl: false });
-                    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(mapConductor);
-                    cOriginMarker = L.marker([10.21, -66.86], { icon: crearIconoPuntero('A', 'bg-blue-600 text-white') }).addTo(mapConductor);
-                    cDestMarker = L.marker([10.22, -66.87], { icon: crearIconoPuntero('B', 'bg-amber-500 text-black') }).addTo(mapConductor);
-                    cRouteLine = L.polyline([], { color: '#eab308', weight: 4 }).addTo(mapConductor);
-                }
-                cOriginMarker.setLatLng(pOriginMarker.getLatLng());
-                cDestMarker.setLatLng(pDestMarker.getLatLng());
-                cRouteLine.setLatLngs(pRouteLine.getLatLngs());
-                mapConductor.fitBounds(cRouteLine.getBounds(), { padding: [10, 10] });
-            }, 150);
         }
 
+        function blackjackClose() { document.getElementById('radar-alert').classList.add('hidden'); }
+        function切换() { document.getElementById('radar-alert').classList.add('hidden'); }
+        function encender() { document.getElementById('radar-alert').classList.add('hidden'); }
         function rechazarViajeConductor() { document.getElementById('radar-alert').classList.add('hidden'); }
 
+        // CORRECCIÓN CLAVE: El conductor acepta la carrera e ingresa al mapa en Fase 1 (Ubicación Pasajero)
         function aceptarViajeConductor() {
             document.getElementById('radar-alert').classList.add('hidden');
             let vCond = parseInt(localStorage.getItem('stats_conducidos') || '0') + 1;
             localStorage.setItem('stats_conducidos', vCond.toString());
-            alert("Carrera agendada. Desplegando hoja de ruta de encuentro con el pasajero.");
-            navegarA('lobby-2-seleccion', 'Portal');
+            
+            // Abrimos el nuevo mapa táctico del conductor
+            abrirMapaNavegacionConductor();
         }
 
-        // Módulo de Transmisión e Inicio de Temporizador Límite (Mejora 4: Tiempo estimado + 1 Minuto)
+        function abrirMapaNavegacionConductor() {
+            navegarA('lobby-11-mapa-conductor', 'Navegación de Ruta');
+            
+            // Setear etiquetas iniciales de Fase 1 (Encuentro)
+            document.getElementById('cond-fase-titulo').innerText = "Fase 1: Buscando al Pasajero";
+            document.getElementById('cond-fase-desc').innerText = "Sigue la línea azul. El cliente espera en el punto de origen.";
+            document.getElementById('cond-fase-icono').className = "w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse";
+            document.getElementById('cond-fase-velocidad').innerText = velocidadPreferida === 'lento' ? "🐢 TRANQUILO" : "⚡ RÁPIDO";
+            document.getElementById('cond-op-monto').innerText = `${precioBolivaresCalculado.toFixed(2)} Bs.`;
+            document.getElementById('cond-op-cliente-nom').innerText = localStorage.getItem('rankinggo_user_name') || "Pasajero Vinculado";
+
+            setTimeout(() => {
+                if (!mapOperativoConductor) {
+                    mapOperativoConductor = L.map('map-operativo-conductor', { zoomControl: false }).setView([latDefault, lonDefault], 15);
+                    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(mapOperativoConductor);
+                    
+                    // Simular ubicación inicial del conductor a 400 metros de distancia
+                    ocMarkerConductor = L.marker([latDefault - 0.003, lonDefault - 0.003], { icon: crearIconoPuntero('🏍️', 'bg-slate-900 text-white') }).addTo(mapOperativoConductor);
+                    ocMarkerPasajero = L.marker([latDefault, lonDefault], { icon: crearIconoPuntero('A', 'bg-blue-600 text-white') }).addTo(mapOperativoConductor);
+                    ocRouteLineOperativa = L.polyline([], { color: '#3b82f6', weight: 6 }).addTo(mapOperativoConductor);
+                } else {
+                    ocMarkerConductor.setLatLng([latDefault - 0.003, lonDefault - 0.003]);
+                    ocMarkerPasajero.setLatLng(pOriginMarker.getLatLng());
+                    ocMarkerPasajero.setIcon(crearIconoPuntero('A', 'bg-blue-600 text-white'));
+                }
+
+                // Trazar línea de encuentro hacia el pasajero
+                let posConductor = ocMarkerConductor.getLatLng();
+                let posPasajero = ocMarkerPasajero.getLatLng();
+                ocRouteLineOperativa.setLatLngs([posConductor, posPasajero]);
+                ocRouteLineOperativa.setStyle({ color: '#3b82f6' }); // Azul = Recogida
+
+                mapOperativoConductor.fitBounds(ocRouteLineOperativa.getBounds(), { padding: [40, 40] });
+                mapOperativoConductor.invalidateSize();
+            }, 200);
+        }
+
         function procesarSolicitudViajeCompleta() {
             let vPas = parseInt(localStorage.getItem('stats_solicitados') || '0') + 1;
             localStorage.setItem('stats_solicitados', vPas.toString());
-
-            document.getElementById('espera-buscando-bloque').classList.remove('hidden');
-            document.getElementById('bloque-rating').classList.add('hidden');
             navegarA('lobby-9-espera', 'Asignando Conductor');
 
-            // Cálculo dinámico de tiempo de arribo estimado (Base: 500 metros por minuto + 60 segundos extra)
             let minutosEstimados = Math.ceil((distanciaFinalMetros / 500)) + 1;
             iniciarContadorRegresivoArribo(minutosEstimados * 60);
         }
@@ -690,30 +673,44 @@
 
                 if (tiempoRestante <= 0) {
                     clearInterval(timerLimiteAsignacion);
-                    alert("⏰ Tiempo límite de encuentro agotado.\nEl sistema canceló al conductor actual y está re-transmitiendo la señal para buscar la unidad libre más cercana.");
-                    procesarSolicitudViajeCompleta(); // Reinicia búsqueda
+                    alert("⏰ Tiempo límite agotado. Buscando otra unidad.");
+                    procesarSolicitudViajeCompleta();
                 }
                 tiempoRestante--;
             }, 1000);
         }
 
-        // Validación Manual del Pasajero (Mejora 4: Acciones ¡Ya llegó! o ¡No llegó!)
+        // CONTROL ANTI-FRAUDE: El pasajero valida llegada y se inyecta la Fase 2 (Ruta de Destino) en la pantalla de la moto
         function registrarAccionLlegadaPasajero(confirmado) {
             if (timerLimiteAsignacion) clearInterval(timerLimiteAsignacion);
 
             if (confirmado) {
-                alert("¡Llegada del conductor confirmada por el cliente! Iniciando ruta.");
-                forzarAceptacionDesdePasajero();
+                alert("¡Llegada confirmada! El mapa del conductor se ha actualizado automáticamente con los datos criptográficos del destino final.");
+                
+                // Forzar actualización del mapa operativo en la pantalla del conductor (Fase 2)
+                if (mapOperativoConductor) {
+                    document.getElementById('cond-fase-titulo').innerText = "Fase 2: Rumbo al Destino";
+                    document.getElementById('cond-fase-desc').innerText = "Destino asegurado. Sigue la línea dorada oficial calculada por satélite.";
+                    document.getElementById('cond-fase-icono').className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse";
+                    
+                    // Ajustamos marcadores: Conductor se mueve al origen y el punto objetivo pasa a ser el Destino Final (B)
+                    ocMarkerConductor.setLatLng(pOriginMarker.getLatLng());
+                    ocMarkerPasajero.setLatLng(pDestMarker.getLatLng());
+                    ocMarkerPasajero.setIcon(crearIconoPuntero('B', 'bg-amber-500 text-black'));
+                    
+                    // Inyectamos la trayectoria real para que el conductor no sea timado
+                    ocRouteLineOperativa.setLatLngs(pRouteLine.getLatLngs());
+                    ocRouteLineOperativa.setStyle({ color: '#f59e0b' }); // Dorado = Trayecto Seguro
+
+                    mapOperativoConductor.fitBounds(ocRouteLineOperativa.getBounds(), { padding: [40, 40] });
+                }
+
+                navegarA('lobby-10-viaje', 'Viaje en Curso');
+                activarMonitoreoGpsRadioArribo();
             } else {
-                alert("Reporte de ausencia registrado. Se cancela el viaje actual y se libera la ruta para re-indexación de unidades.");
+                alert("Reporte guardado. Viaje cancelado.");
                 navegarA('lobby-3-mapa', 'Solicitar Viaje');
             }
-        }
-
-        function forzarAceptacionDesdePasajero() {
-            if (timerLimiteAsignacion) clearInterval(timerLimiteAsignacion);
-            navegarA('lobby-10-viaje', 'Viaje en Curso');
-            activarMonitoreoGpsRadioArribo();
         }
 
         function activarMonitoreoGpsRadioArribo() {
@@ -721,7 +718,6 @@
                 gpsTrackerWatchId = navigator.geolocation.watchPosition(pos => {
                     const dMetros = calcularMetrosEntrePuntos(pos.coords.latitude, pos.coords.longitude, pDestMarker.getLatLng().lat, pDestMarker.getLatLng().lng);
                     document.getElementById('distancia-restante-live').innerText = `Faltan ${dMetros.toFixed(1)} metros para la meta`;
-
                     if (dMetros <= 5) ejecutarArriboDestinoAutomatico();
                 }, null, { enableHighAccuracy: true });
             }
@@ -735,27 +731,18 @@
             return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
         }
 
-        // Cierre Operativo y Distribución Financiera de Presupuesto Técnico Completo
         function ejecutarArriboDestinoAutomatico() {
             if (gpsTrackerWatchId) navigator.geolocation.clearWatch(gpsTrackerWatchId);
             
-            let lGastados = distanciaFinalMetros * CONSUMO_GASOLINA_L_POR_METRO;
-            let costoGasolina = lGastados * COSTO_LITRO_GASOLINA_BS;
-            
-            // Retención matemática limpia
             let comisionApp = precioBolivaresCalculado * FACTOR_RETENCION_APP_NETA;
             let comisionPool = precioBolivaresCalculado * FACTOR_CHAMBEO_POOL;
-            let netoConductor = precioBolivaresCalculado - comisionApp - comisionPool - costoGasolina;
-            if (netoConductor < 0) netoConductor = 0;
+            let netoConductor = precioBolivaresCalculado - comisionApp - comisionPool;
 
             let bOld = parseFloat(localStorage.getItem('w_acumulado') || '0');
-            let pOld = parseFloat(localStorage.getItem('w_pote') || '0');
             let poolOld = parseFloat(localStorage.getItem('w_pool') || '0');
 
             localStorage.setItem('w_acumulado', (bOld + netoConductor).toString());
-            localStorage.setItem('w_pote', (pOld + 3.33).toString()); // 3.33 Bs por día para cambio de aceite regular
             localStorage.setItem('w_pool', (poolOld + comisionPool).toString());
-
             actualizarInterfazBilletera();
 
             document.getElementById('espera-buscando-bloque').classList.add('hidden');
@@ -773,56 +760,40 @@
 
         function guardarRatingFinalYReiniciar() { navegarA('lobby-2-seleccion', 'Portal Operativo'); }
 
-        // Mejora 6: Generación Dinámica del "Campeonato del Más Chambeador"
         function generarTablaCampeonatoSimulada() {
             const container = document.getElementById('leaderboard-rows-container');
             const dataFalsaConductores = [
                 { pos: 1, nombre: "Carlos 'Piraña' Mendoza", viajes: 142, clase: "bg-amber-500/10 text-amber-400 font-bold" },
                 { pos: 2, nombre: "Yonaiker Ramos (Bera Sport)", viajes: 128, clase: "text-slate-200" },
-                { pos: 3, nombre: "Luis Alexander (Eje Central)", viajes: 115, clase: "text-slate-300" },
-                { pos: 4, nombre: localStorage.getItem('rankinggo_user_name') || "Tú (Operativo)", viajes: parseInt(localStorage.getItem('stats_conducidos') || '0'), Skinner: true, clase: "text-blue-400 font-bold" }
+                { pos: 4, nombre: localStorage.getItem('rankinggo_user_name') || "Tú (Operativo)", viajes: parseInt(localStorage.getItem('stats_conducidos') || '0'), clase: "text-blue-400 font-bold" }
             ];
-
-            // Reordenar en base al volumen de viajes reales logrados
             dataFalsaConductores.sort((x, y) => y.viajes - x.viajes);
-
             container.innerHTML = "";
             dataFalsaConductores.forEach((c, index) => {
                 let p = index + 1;
                 let row = document.createElement('div');
-                row.className = `p-3 grid grid-cols-12 text-xs items-center ${c.pos === 1 ? 'bg-gradient-to-r from-slate-900 via-slate-900 to-amber-950/20' : ''}`;
-                row.innerHTML = `
-                    <span class="col-span-2 text-center font-black">${p === 1 ? '🥇' : p === 2 ? '🥈' : p === 3 ? '🥉' : p}</span>
-                    <span class="col-span-6 truncate ${c.clase}">${c.nombre}</span>
-                    <span class="col-span-4 text-right font-mono font-bold text-slate-300">${c.viajes} vjs</span>
-                `;
+                row.className = `p-3 grid grid-cols-12 text-xs items-center`;
+                row.innerHTML = `<span class="col-span-2 text-center font-black">${p === 1 ? '🥇' : p === 2 ? '🥈' : p}</span><span class="col-span-6 truncate ${c.clase}">${c.nombre}</span><span class="col-span-4 text-right font-mono font-bold text-slate-300">${c.viajes} vjs</span>`;
                 container.appendChild(row);
             });
         }
 
-        // Mejora 9: Lógica del Minijuego "Mini Block Puzzle" Autocontenido
+        // Lógica del Minijuego "Mini Block Puzzle"
         let blockGameState = Array(16).fill(false);
         let blockGameScore = 0;
 
         function reiniciarMinijuegoBloques() {
-            blockGameState = Array(16).fill(false);
-            blockGameScore = 0;
+            blockGameState = Array(16).fill(false); blockGameScore = 0;
             document.getElementById('game-score-txt').innerText = blockGameScore;
-            
             const board = document.getElementById('board-block-game');
             board.innerHTML = "";
             for(let i=0; i<16; i++) {
                 let cell = document.createElement('div');
                 cell.className = "cell-game";
-                cell.setAttribute('data-index', i);
-                cell.onclick = () => procesarToqueMinijuego(i);
+                cell.onclick = () => { blockGameState[i] = !blockGameState[i]; blockGameScore += 5; document.getElementById('game-score-txt').innerText = blockGameScore; renderizarMatrizGraficaJuego(); };
                 board.appendChild(cell);
             }
-            // Iniciar con 4 bloques pintados al azar
-            for(let k=0; k<4; k++) {
-                let r = Math.floor(Math.random() * 16);
-                blockGameState[r] = true;
-            }
+            for(let k=0; k<4; k++) { blockGameState[Math.floor(Math.random() * 16)] = true; }
             renderizarMatrizGraficaJuego();
         }
 
@@ -832,29 +803,6 @@
                 if(blockGameState[idx]) c.classList.add('cell-active');
                 else c.classList.remove('cell-active');
             });
-        }
-
-        function procesarToqueMinijuego(index) {
-            blockGameState[index] = !blockGameState[index];
-            blockGameScore += 5;
-            document.getElementById('game-score-txt').innerText = blockGameScore;
-            renderizarMatrizGraficaJuego();
-            verificarLimpiezaFilasJuego();
-        }
-
-        function verificarLimpiezaFilasJuego() {
-            // Validación básica de barrido de filas horizontales (Grid 4x4)
-            for (let f = 0; f < 4; f++) {
-                let offset = f * 4;
-                if (blockGameState[offset] && blockGameState[offset+1] && blockGameState[offset+2] && blockGameState[offset+3]) {
-                    blockGameState[offset] = false; blockGameState[offset+1] = false;
-                    blockGameState[offset+2] = false; blockGameState[offset+3] = false;
-                    blockGameScore += 100; // Bonus por fila destruida
-                    document.getElementById('game-score-txt').innerText = blockGameScore;
-                    alert("🧩 ¡Fila Completada en Puzzle!");
-                    renderizarMatrizGraficaJuego();
-                }
-            }
         }
     </script>
 </body>
