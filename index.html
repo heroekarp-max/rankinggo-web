@@ -380,8 +380,7 @@
                     <p id="stats-viajes-conducidos" class="text-xl font-black text-slate-200 mt-1">0</p>
                 </div>
             </div>
-
-            <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-2 text-xs text-slate-400" id="perfil-datos-tecnicos-box">
+<div class="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-2 text-xs text-slate-400" id="perfil-datos-tecnicos-box">
                 <p class="text-[10px] font-black text-slate-300 uppercase tracking-wider border-b border-slate-800 pb-1.5">Datos Registrados de Control</p>
                 <div>Teléfono: <span id="perf-val-tlf" class="text-slate-200 font-mono font-bold"></span></div>
                 <div id="perf-row-cedula" class="hidden">Cédula: <span id="perf-val-cedula" class="text-slate-200 font-mono font-bold"></span></div>
@@ -412,16 +411,15 @@
 
         // Estructura de Tarifas Técnicas Basado en 1$ = 600.00 Bs.
         const TASA_CAMBIO = 600.00;
-        const TARIFA_MINIMA_BS = 300.00; // Medio dólar minimo
-        const DISTANCIA_MINIMA_METROS = 2000; // 2 kilómetros cubiertos
-        const PRECIO_POR_METRO_EXTRA = 150.00 / 1000; // 0.15 Bs por metro adicional (1$ = 4km)
+        const TARIFA_MINIMA_BS = 300.00; 
+        const DISTANCIA_MINIMA_METROS = 2000; 
+        const PRECIO_POR_METRO_EXTRA = 150.00 / 1000; 
 
         const CONSUMO_GASOLINA_L_POR_METRO = 0.040 / 1000;
-        const COSTO_LITRO_GASOLINA_BS = 300.00; // 2 litros de gasolina = 1$ (600 Bs) -> 1 Litro = 300 Bs.
+        const COSTO_LITRO_GASOLINA_BS = 300.00; 
         
-        // DISTRIBUCIÓN EXPLICITA DE RETENCIONES DE LA APP (12% TOTAL)
-        const FACTOR_RETENCION_APP_NETA = 0.09; // 9% Ganancia pura de la plataforma
-        const FACTOR_CHAMBEO_POOL = 0.03; // 3% Para caja de ahorro y campeonato del más chambeador
+        const FACTOR_RETENCION_APP_NETA = 0.09; 
+        const FACTOR_CHAMBEO_POOL = 0.03; 
 
         // Ciclo de Inicio Automático
         window.addEventListener('load', () => {
@@ -439,21 +437,24 @@
             reiniciarMinijuegoBloques();
         });
 
-        // Geolocalización Forzada y Precisa (Mejora 7: El usuario ya no mueve el pin manual)
+        // CORRECCIÓN GPS: Forzado de alta precisión real sin datos en caché vieja
         function ejecutarGpsPrecisoDispositivo(forzarAlerta = false) {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(pos => {
                     latDefault = pos.coords.latitude;
                     lonDefault = pos.coords.longitude;
-                    if (pOriginMarker && mapPasajero) {
+                    
+                    if (mapPasajero && pOriginMarker) {
                         pOriginMarker.setLatLng([latDefault, lonDefault]);
                         mapPasajero.setView([latDefault, lonDefault], 16);
                         recalcularRutaMetersOSRM();
                     }
-                    if (forzarAlerta) alert("Ubicación recalculada con éxito por satélite.");
+                    if (forzarAlerta) {
+                        alert("📍 GPS Sincronizado: Tu punto de salida (Origen A) se ha ajustado a tu ubicación satelital exacta.");
+                    }
                 }, () => {
-                    if (forzarAlerta) alert("No se pudo obtener señal GPS de alta precisión. Revisa tus permisos.");
-                }, { enableHighAccuracy: true, timeout: 10000 });
+                    if (forzarAlerta) alert("No se pudo obtener señal GPS. Activa la ubicación de alta precisión en tu teléfono y concede permisos en Telegram.");
+                }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 });
             }
         }
 
@@ -475,7 +476,6 @@
             navegarA('lobby-2-seleccion', 'Portal Operativo');
         }
 
-        // Control de Acceso Consola Conductor (Mejora 1: Registro complementario estricto)
         function intentarEntrarConsolaConductor() {
             if (localStorage.getItem('rankinggo_driver_registered') === 'true') {
                 document.getElementById('cond-id-display').innerText = `ID OPERATIVO: M-${userTelegramId.toString().slice(-4)}`;
@@ -510,7 +510,7 @@
             location.reload();
         }
 
-        // Sistema de Navegación SPA e Inyección de Datos del Perfil (Mejora 8)
+        // Sistema de Navegación SPA - Redibujado de mapas al cambiar pantallas
         function navegarA(idPantalla, tituloSub = "RanKingGo") {
             document.querySelectorAll('.pantalla-spa').forEach(p => {
                 p.classList.remove('pantalla-activa'); p.classList.add('pantalla-oculta');
@@ -521,6 +521,10 @@
 
             if(idPantalla === 'lobby-3-mapa') {
                 setTimeout(() => { inicializarMapaPasajero(); mapPasajero.invalidateSize(); }, 200);
+            }
+            // Asegura que si vuelve a la pantalla de conductor el mapa renderice correctamente
+            if(idPantalla === 'lobby-4-conductor') {
+                setTimeout(() => { if(mapConductor) mapConductor.invalidateSize(); }, 200);
             }
             if(idPantalla === 'lobby-perfil') {
                 cargarDatosLobbyPerfil();
@@ -551,7 +555,6 @@
             document.getElementById('stats-viajes-conducidos').innerText = localStorage.getItem('stats_conducidos') || '0';
         }
 
-        // Inicialización del Mapa Base (Mejora 7: draggable en false para evitar movimientos accidentales)
         function inicializarMapaPasajero() {
             if (mapPasajero) return;
             mapPasajero = L.map('map', { zoomControl: false }).setView([latDefault, lonDefault], 16);
@@ -600,20 +603,14 @@
             document.getElementById('pm-monto-texto').innerText = `${precioBolivaresCalculado.toFixed(2)} Bs.`;
             document.getElementById('efectivo-comision-texto').innerText = `${(precioBolivaresCalculado * FACTOR_RETENCION_APP_NETA).toFixed(2)} Bs.`;
     
-            // Formateamos el monto con coma para los bancos de Venezuela
             let montoStringSms = precioBolivaresCalculado.toFixed(2).replace('.', ',');
             let cuerpoMensajeCompleto = `Pagar 0102 04264211835 25517007 ${montoStringSms}`;
     
-            // Mostramos el texto en el lobby
             document.getElementById('sms-estructura-texto').innerText = cuerpoMensajeCompleto;
 
-            // SOLUCIÓN AL PATICO: Asignamos el protocolo SMS directamente al enlace HTML
-            let linkSmsEstructurado = `sms:2662?body=${encodeURIComponent(cuerpoMensajeCompleto)}`;
             const botonSms = document.getElementById('btn-sms-dinamico');
             if(botonSms) {
-                botonSms.href = linkSmsEstructurado;
-        
-                // BONUS DE ORO: Si hace clic, aparte de abrir la app, se lo copia al portapapeles por seguridad
+                botonSms.href = `sms:2662?body=${encodeURIComponent(cuerpoMensajeCompleto)}`;
                 botonSms.onclick = () => {
                     if (navigator.clipboard && navigator.clipboard.writeText) {
                         navigator.clipboard.writeText(cuerpoMensajeCompleto);
@@ -628,7 +625,6 @@
             document.getElementById('btn-vel-rapido').className = tipo === 'rapido' ? "bg-amber-500 text-black border border-amber-500 p-3 rounded-xl text-sm font-black transition" : "bg-slate-900 border border-slate-800 p-3 rounded-xl text-sm font-bold text-slate-400 transition";
         }
 
-        // Billeteras e Interfaz Financiera (Mejora 5: Adición de caja de ahorro 3%)
         function actualizarInterfazBilletera() {
             let b = parseFloat(localStorage.getItem('w_acumulado') || '0');
             let p = parseFloat(localStorage.getItem('w_pote') || '0');
@@ -640,7 +636,7 @@
             document.getElementById('pool-chambeo-total').innerText = `${pool.toFixed(2)} Bs.`;
 
             const btn = document.getElementById('btn-retirar-aceite');
-            if (p >= 6000.00) { // 10 dólares son 6000 Bs
+            if (p >= 6000.00) { 
                 btn.disabled = false; btn.className = "w-full text-[8px] bg-amber-500 text-black py-0.5 rounded font-black mt-1";
             } else {
                 btn.disabled = true; btn.className = "w-full text-[8px] bg-slate-800 text-slate-500 py-0.5 rounded font-bold mt-1";
@@ -653,12 +649,11 @@
             actualizarInterfazBilletera();
         }
 
-        // Mejora 4: Alerta de emergencia SOS del Conductor
         function activarBotonAlertaSMSO() {
-            alert("⚠️ ALERTA DE EMERGENCIA EMITIDA ⚠️\nSe ha enviado tu geolocalización satelital en tiempo real a todas las unidades activas en el perímetro para asistencia inmediata.");
+            alert("⚠️ ALERTA DE @EMERGENCIA EMITIDA ⚠️\nSe ha enviado tu geolocalización satelital en tiempo real a todas las unidades activas en el perímetro para asistencia inmediata.");
         }
 
-        // Simulación de Consola Conductor Inteligente (Muestra velocidad requerida por Pasajero)
+        // Radar de solicitudes entrantes para el Conductor
         function simularViajeEntrante() {
             document.getElementById('alert-monto').innerText = `${precioBolivaresCalculado.toFixed(2)} Bs.`;
             document.getElementById('alert-velocidad-badge').innerText = velocidadPreferida === 'lento' ? "🐢 TRANQUILO" : "⚡ RÁPIDO";
@@ -675,21 +670,30 @@
                 cOriginMarker.setLatLng(pOriginMarker.getLatLng());
                 cDestMarker.setLatLng(pDestMarker.getLatLng());
                 cRouteLine.setLatLngs(pRouteLine.getLatLngs());
-                mapConductor.fitBounds(cRouteLine.getBounds(), { padding: [10, 10] });
+                mapConductor.fitBounds(cRouteLine.getBounds(), { padding: [20, 20] });
             }, 150);
         }
 
         function rechazarViajeConductor() { document.getElementById('radar-alert').classList.add('hidden'); }
 
+        // CORRECCIÓN FLUJO DE TRABAJO: Mantiene al conductor viendo el mapa sin regresarlo a la selección
         function aceptarViajeConductor() {
             document.getElementById('radar-alert').classList.add('hidden');
             let vCond = parseInt(localStorage.getItem('stats_conducidos') || '0') + 1;
             localStorage.setItem('stats_conducidos', vCond.toString());
-            alert("Carrera agendada. Desplegando hoja de ruta de encuentro con el pasajero.");
-            navegarA('lobby-2-seleccion', 'Portal');
+            
+            // Redirigir de inmediato a la consola del conductor para auditar la ruta activa
+            navegarA('lobby-4-conductor', 'Ruta de Carrera Activa');
+            
+            if (mapConductor && cRouteLine) {
+                mapConductor.invalidateSize();
+                mapConductor.fitBounds(cRouteLine.getBounds(), { padding: [30, 30] });
+            }
+            
+            alert("🔒 Carrera Asegurada.\nVisualiza el PUNTO A (Ubicación del Pasajero) y el PUNTO B (Destino Final) en tu mapa para ejecutar el servicio con seguridad y evitar fraudes de ruta.");
         }
 
-        // Módulo de Transmisión e Inicio de Temporizador Límite (Mejora 4: Tiempo estimado + 1 Minuto)
+        // Módulo de Transmisión del Pasajero
         function procesarSolicitudViajeCompleta() {
             let vPas = parseInt(localStorage.getItem('stats_solicitados') || '0') + 1;
             localStorage.setItem('stats_solicitados', vPas.toString());
@@ -698,7 +702,6 @@
             document.getElementById('bloque-rating').classList.add('hidden');
             navegarA('lobby-9-espera', 'Asignando Conductor');
 
-            // Cálculo dinámico de tiempo de arribo estimado (Base: 500 metros por minuto + 60 segundos extra)
             let minutosEstimados = Math.ceil((distanciaFinalMetros / 500)) + 1;
             iniciarContadorRegresivoArribo(minutosEstimados * 60);
         }
@@ -714,14 +717,13 @@
 
                 if (tiempoRestante <= 0) {
                     clearInterval(timerLimiteAsignacion);
-                    alert("⏰ Tiempo límite de encuentro agotado.\nEl sistema canceló al conductor actual y está re-transmitiendo la señal para buscar la unidad libre más cercana.");
-                    procesarSolicitudViajeCompleta(); // Reinicia búsqueda
+                    alert("⏰ Tiempo límite agotado. Re-transmitiendo señal para re-indexar unidades cercanas.");
+                    procesarSolicitudViajeCompleta(); 
                 }
                 tiempoRestante--;
             }, 1000);
         }
 
-        // Validación Manual del Pasajero (Mejora 4: Acciones ¡Ya llegó! o ¡No llegó!)
         function registrarAccionLlegadaPasajero(confirmado) {
             if (timerLimiteAsignacion) clearInterval(timerLimiteAsignacion);
 
@@ -729,7 +731,7 @@
                 alert("¡Llegada del conductor confirmada por el cliente! Iniciando ruta.");
                 forzarAceptacionDesdePasajero();
             } else {
-                alert("Reporte de ausencia registrado. Se cancela el viaje actual y se libera la ruta para re-indexación de unidades.");
+                alert("Reporte de ausencia registrado. Se libera la ruta.");
                 navegarA('lobby-3-mapa', 'Solicitar Viaje');
             }
         }
@@ -759,14 +761,12 @@
             return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
         }
 
-        // Cierre Operativo y Distribución Financiera de Presupuesto Técnico Completo
         function ejecutarArriboDestinoAutomatico() {
             if (gpsTrackerWatchId) navigator.geolocation.clearWatch(gpsTrackerWatchId);
             
             let lGastados = distanciaFinalMetros * CONSUMO_GASOLINA_L_POR_METRO;
             let costoGasolina = lGastados * COSTO_LITRO_GASOLINA_BS;
             
-            // Retención matemática limpia
             let comisionApp = precioBolivaresCalculado * FACTOR_RETENCION_APP_NETA;
             let comisionPool = precioBolivaresCalculado * FACTOR_CHAMBEO_POOL;
             let netoConductor = precioBolivaresCalculado - comisionApp - comisionPool - costoGasolina;
@@ -777,7 +777,7 @@
             let poolOld = parseFloat(localStorage.getItem('w_pool') || '0');
 
             localStorage.setItem('w_acumulado', (bOld + netoConductor).toString());
-            localStorage.setItem('w_pote', (pOld + 3.33).toString()); // 3.33 Bs por día para cambio de aceite regular
+            localStorage.setItem('w_pote', (pOld + 3.33).toString()); 
             localStorage.setItem('w_pool', (poolOld + comisionPool).toString());
 
             actualizarInterfazBilletera();
@@ -797,7 +797,6 @@
 
         function guardarRatingFinalYReiniciar() { navegarA('lobby-2-seleccion', 'Portal Operativo'); }
 
-        // Mejora 6: Generación Dinámica del "Campeonato del Más Chambeador"
         function generarTablaCampeonatoSimulada() {
             const container = document.getElementById('leaderboard-rows-container');
             const dataFalsaConductores = [
@@ -807,7 +806,6 @@
                 { pos: 4, nombre: localStorage.getItem('rankinggo_user_name') || "Tú (Operativo)", viajes: parseInt(localStorage.getItem('stats_conducidos') || '0'), Skinner: true, clase: "text-blue-400 font-bold" }
             ];
 
-            // Reordenar en base al volumen de viajes reales logrados
             dataFalsaConductores.sort((x, y) => y.viajes - x.viajes);
 
             container.innerHTML = "";
@@ -824,7 +822,7 @@
             });
         }
 
-        // Mejora 9: Lógica del Minijuego "Mini Block Puzzle" Autocontenido
+        // Módulo Extra: Minijuego Integrado
         let blockGameState = Array(16).fill(false);
         let blockGameScore = 0;
 
@@ -842,7 +840,6 @@
                 cell.onclick = () => procesarToqueMinijuego(i);
                 board.appendChild(cell);
             }
-            // Iniciar con 4 bloques pintados al azar
             for(let k=0; k<4; k++) {
                 let r = Math.floor(Math.random() * 16);
                 blockGameState[r] = true;
@@ -867,13 +864,12 @@
         }
 
         function verificarLimpiezaFilasJuego() {
-            // Validation básica de barrido de filas horizontales (Grid 4x4)
             for (let f = 0; f < 4; f++) {
                 let offset = f * 4;
                 if (blockGameState[offset] && blockGameState[offset+1] && blockGameState[offset+2] && blockGameState[offset+3]) {
                     blockGameState[offset] = false; blockGameState[offset+1] = false;
                     blockGameState[offset+2] = false; blockGameState[offset+3] = false;
-                    blockGameScore += 100; // Bonus por fila destruida
+                    blockGameScore += 100; 
                     document.getElementById('game-score-txt').innerText = blockGameScore;
                     alert("🧩 ¡Fila Completada en Puzzle!");
                     renderizarMatrizGraficaJuego();
